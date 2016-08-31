@@ -1,41 +1,49 @@
- {
-    "name"         : "serios",
-    "version"      : "0.0.1",
-    "description"  : "A node.js ServIoTicy 'clone', serving the IoT securely",
-    "homepage"     : "",
-    "license"      : "AFL-3.0",
-    "repository"   : {
-        "type":"git",
-        "url":""
+{
+  "name": "serios",
+  "version": "0.0.1",
+  "description": "A node.js ServIoTicy 'clone', serving the IoT securely",
+  "homepage": "",
+  "license": "AFL-3.0",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "main": "serios.js",
+  "scripts": {
+    "start": "node serios.js"
+  },
+  "contributors": [
+    {
+      "name": "Daniel Schreckling"
     },
-    "main"         : "serios.js",
-    "scripts"      : {
-        "start": "node serios.js"
+    {
+      "name": "Tobias Marktscheffel"
     },
-    "contributors": [
-        {
-            "name": "Daniel Schreckling",
-            "name": "Tobias Marktscheffel",
-            "name": "Phil Werli"
-        }
-    ],
-    "keywords": [
-        "IoT", "FORSEC", "Security", "Flow Control"
-    ],
-    "dependencies": {
-        "express": "4.x",
-        "when": "3.7.7",
-        "node-uuid" : "1.4.7",
-        "mongoose" : "3.8.x",
-	    "async" : "2.0.1",
-	    "q" : "1.4.1",
-        "body-parser" : "1.15.2"
-    },
-    "optionalDependencies": {
-    },
-    "devDependencies": {
-    },
-    "engines": {
-        "node": ">=0.10 <0.12"
+    {
+      "name": "Phil Werli",
+      "email": "werli@fim.uni-passau.de"
     }
+  ],
+  "keywords": [
+    "IoT",
+    "FORSEC",
+    "Security",
+    "Flow Control"
+  ],
+  "dependencies": {
+    "express": "4.x",
+    "when": "3.7.7",
+    "node-uuid": "1.4.7",
+    "mongoose": "3.8.x",
+    "async": "2.0.1",
+    "q": "1.4.1",
+    "body-parser": "1.15.2"
+  },
+  "optionalDependencies": {
+  },
+  "devDependencies": {
+  },
+  "engines": {
+    "node": ">=0.10 <0.12"
+  }
 }
