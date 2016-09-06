@@ -154,6 +154,7 @@ var s = new mongoose.Schema({
 ####Attributes
 * `channels`: collection of Data Channels.
 * `lastUpdate`: a timestamp on the last time the service object was updated
+
 ####Database Schema
 | Attribute        | Datatype   |
 | ---------------- |-----------:|
