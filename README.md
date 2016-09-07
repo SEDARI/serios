@@ -1,1 +1,1 @@
-# SERIOS - SERving the IoT Securely [![Build Status](https://travis-ci.org/SEDARI/serios.svg?branch=master)](https://travis-ci.org/SEDARI/serios) [![Dependencies Status](https://david-dm.org/SEDARI/serios.svg)](https://david-dm.org/SEDARI/serios)
+# SERIOS - SERving the IoT Securely [![Build Status](https://travis-ci.org/SEDARI/serios.svg?branch=master)](https://travis-ci.org/SEDARI/serios) [![dependencies Status](https://david-dm.org/SEDARI/serios/status.svg)](https://david-dm.org/SEDARI/serios)
