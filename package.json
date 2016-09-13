@@ -1,49 +1,71 @@
 {
-  "name": "serios",
-  "version": "0.0.1",
-  "description": "A node.js ServIoTicy 'clone', serving the IoT securely",
-  "homepage": "",
-  "license": "AFL-3.0",
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "main": "serios.js",
-  "scripts": {
-    "start": "node serios.js"
-  },
-  "contributors": [
-    {
-      "name": "Daniel Schreckling"
+    "name": "serios",
+    "version": "0.0.1",
+    "description": "A node.js ServIoTicy 'clone', serving the IoT securely",
+    "homepage": "",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SEDARI/serios.git"
     },
-    {
-      "name": "Tobias Marktscheffel"
+    "main": "serios.js",
+    "scripts": {
+        "start": "node serios.js",
+        "test" : "./node_modules/.bin/grunt"
     },
-    {
-      "name": "Phil Werli",
-      "email": "werli@fim.uni-passau.de"
+    "contributors": [
+        {
+            "name": "Daniel Schreckling"
+        },
+        {
+            "name": "Tobias Marktscheffel"
+        },
+        {
+            "name": "Phil Werli",
+            "email": "werli@fim.uni-passau.de"
+        }
+    ],
+    "keywords": [
+        "IoT",
+        "FORSEC",
+        "Security",
+        "Flow Control"
+    ],
+    "dependencies": {
+        "express": "^4.14.0",
+        "when": "3.7.7",
+        "node-uuid": "1.4.7",
+        "mongoose": "^4.6.0",
+        "async": "2.0.1",
+        "q": "1.4.1",
+        "body-parser": "1.15.2",
+        "agile-idm-web-ui": "https://github.com/Agile-IoT/agile-idm-web-ui",
+        "neros" : "https://github.com/SEDARI/neros"
+    },
+    "optionalDependencies": {
+    },
+    "devDependencies": {
+        "grunt": "1.0.1",
+        "grunt-chmod": "1.1.1",
+        "grunt-cli": "1.2.0",
+        "grunt-concurrent":"2.3.0",
+        "grunt-contrib-clean":"1.0.0",
+        "grunt-contrib-compress": "1.3.0",
+        "grunt-contrib-concat":"1.0.1",
+        "grunt-contrib-copy": "1.0.0",
+        "grunt-contrib-jshint": "1.0.0",
+        "grunt-contrib-uglify": "2.0.0",
+        "grunt-contrib-watch":"1.0.0",
+        "grunt-jsonlint":"1.1.0",
+        "grunt-nodemon":"0.4.2",
+        "grunt-sass":"1.2.0",
+        "grunt-simple-mocha": "0.4.1",
+        "mocha": "2.5.3",
+        "should": "8.4.0",
+        "sinon": "1.17.5",
+        "supertest": "1.2.0"
+    },
+    "engines": {
+        "node": ">=0.10 <6.0.0"
     }
-  ],
-  "keywords": [
-    "IoT",
-    "FORSEC",
-    "Security",
-    "Flow Control"
-  ],
-  "dependencies": {
-    "express": "^4.14.0",
-    "when": "3.7.7",
-    "node-uuid": "1.4.7",
-    "mongoose": "^4.6.0",
-    "async": "2.0.1",
-    "q": "1.4.1",
-    "body-parser": "1.15.2"
-  },
-  "optionalDependencies": {
-  },
-  "devDependencies": {
-  },
-  "engines": {
-    "node": ">=0.10 <0.12"
-  }
 }
