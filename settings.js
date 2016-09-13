@@ -65,5 +65,40 @@ module.exports = {
             "key":"./certs/server.key",
             "cert":"./certs/server.crt"
         }
+    },
+    neros: {
+        mqttReconnectTime: 15000,
+
+        // Retry time in milliseconds for Serial port connections
+        serialReconnectTime: 15000,
+
+        // The maximum length, in characters, of any message sent to the debug sidebar tab
+        debugMaxLength: 1000,
+
+        functionGlobalContext: {
+            // os:require('os'),
+            // octalbonescript:require('octalbonescript'),
+            // jfive:require("johnny-five"),
+            // j5board:require("johnny-five").Board({repl:false})
+        },
+
+        // Configure the logging output
+        logging: {
+            // Only console logging is currently supported
+            console: {
+                // Level of logging to be recorded. Options are:
+                // fatal - only those errors which make the application unusable should be recorded
+                // error - record errors which are deemed fatal for a particular request + fatal errors
+                // warn - record problems which are non fatal + errors + fatal errors
+                // info - record information about the general running of the application + warn + error + fatal errors
+                // debug - record information which is more verbose than info + info + warn + error + fatal errors
+                // trace - record very detailed logging + debug + info + warn + error + fatal errors
+                level: "info",
+                // Whether or not to include metric events in the log output
+                metrics: false,
+                // Whether or not to include audit events in the log output
+                audit: false
+            }
+        }
     }
 }

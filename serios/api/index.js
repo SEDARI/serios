@@ -35,7 +35,7 @@ function init(_server, _core) {
     app.put    ("/so/:soID", serviceObject.update);
     app.delete ("/so/:soID", serviceObject.remove);
 
-    core.app().use(app);
+    core.app.use(app);
 }
 
 function getVersion(req, res) {
@@ -55,5 +55,6 @@ module.exports = {
     start : start,
     stop : stop,
 
-    get settings() { return settings; }
+    get settings() { return settings; },
+    get server() { return server; }
 };
