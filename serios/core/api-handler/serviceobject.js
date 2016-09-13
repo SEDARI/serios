@@ -1,4 +1,4 @@
-/*
+/**
  * This file handles all the logic concerning service objects that isn't API logic.
  */
 var storage = require("../storage");
@@ -6,7 +6,10 @@ var storage = require("../storage");
 module.exports = {
     add: addServiceObject,
     update: updateServiceObject,
-    remove: removeServiceObject
+    remove: removeServiceObject,
+
+    getAllSoForGateway: getAllSoForGateway,
+    getAllSoForUser: getAllSoForUser
 };
 
 /**
@@ -38,4 +41,24 @@ function updateServiceObject(soID, so) {
  */
 function removeServiceObject(soID) {
     return storage.removeServiceObject(soID);
+}
+
+/**
+ * Calls the storage to return all service objects for a given user.
+ *
+ * @param userID the identifier of the user.
+ * @returns {*}
+ */
+function getAllSoForUser(userID) {
+    return storage.getAllSoForUser(userID);
+}
+
+/**
+ * Calls the storage to return all service objects for a given gateway.
+ *
+ * @param gatewayID the identifier of the gateway.
+ * @returns {*}
+ */
+function getAllSoForGateway(gatewayID) {
+    return storage.getAllSoForGateway(gatewayID);
 }
