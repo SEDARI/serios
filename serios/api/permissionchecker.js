@@ -8,6 +8,7 @@ module.exports = {
         return new Promise(function (resolve, reject) {
             // this is a dummy version for later authentication
             // We will use identity management from Juan David
+            return resolve();
         });
     }
 };

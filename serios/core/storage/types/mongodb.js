@@ -151,7 +151,7 @@ function addServiceObject(newSo) {
             } else {
                 resolve(so.id);
             }
-        })
+        });
     });
 }
 
@@ -164,8 +164,11 @@ function addServiceObject(newSo) {
 function updateServiceObject(so) {
     return new Promise(function (resolve, reject) {
         ServiceObject.findByIdAndUpdate(so.id, so, function (err) {
-            err ? reject(err) : resolve();
-        })
+            if(err)
+                reject(err);
+            else
+                resolve();
+        });
     });
 }
 
@@ -178,7 +181,10 @@ function updateServiceObject(so) {
 function removeServiceObject(soID) {
     return new Promise(function (resolve, reject) {
         ServiceObject.findByIdAndRemove(soID, function (err) {
-            err ? reject(err) : resolve();
+            if(err)
+                reject(err);
+            else
+                resolve();
         });
     });
 }

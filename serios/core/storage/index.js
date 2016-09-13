@@ -23,8 +23,9 @@ module.exports = {
 /**
  * Initializes the storage.
  */
-function init() {
+function init(settings) {
     // TODO Phil: 11/09/16 get the storage type from e.g. the settings file
+    type = "mongodb";
     storage = require("./types/" + type);
 }
 

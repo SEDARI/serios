@@ -22,10 +22,19 @@ try {
     process.exit();
 }
 
-server = http.createServer(function(req, res) { app(req, res); });
+if(!settings.server.tls) {
+    server = http.createServer(function(req, res) { app(req, res); });
+} else {
+    var options = {
+        key: fs.readFileSync(settings.idm.tls.key),
+        cert: fs.readFileSync(settings.idm.tls.cert),
+        requestCert: true
+    };
+    server = https.createServer(options, function(req, res) { app(req, res); });
+}
 server.setMaxListeners(0);
 
-SERIOS.init(server, null);
+SERIOS.init(server, settings);
 
 app.use("/", SERIOS.app);
 
@@ -44,8 +53,8 @@ SERIOS.start().then(function() {
         }
         process.exit(1);
     });
-    server.listen(settings.httpServer.port,
-                  settings.httpServer.host,
+    server.listen(settings.server.port,
+                  settings.server.host,
                   function () {
                       process.tite = "SERIOS Server";
                       console.log('Server now running at '+getListenPath());
@@ -56,8 +65,8 @@ SERIOS.start().then(function() {
 });
 
 function getListenPath() {
-    var listenPath = 'http://'+
-        (settings.httpServer.host == '0.0.0.0' ? '127.0.0.1' : settings.httpServer.host)+
-        ':'+settings.httpServer.port + "/";
+    var listenPath = 'http' + (settings.server.tls ? 's' : '') + '://'+
+        (settings.server.host == '0.0.0.0' ? '127.0.0.1' : settings.server.host)+
+        ':'+settings.server.port + "/";
     return listenPath;
 }

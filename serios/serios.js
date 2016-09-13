@@ -1,14 +1,23 @@
-var server = require("./server");
+var api = require("./api");
+var core = require("./core");
+
+var app = null;
 
 var SERIOS = {
     init : function(httpServer, settings) {
-        server.init(httpServer, settings);
-        return server.app;
+        core.init(settings, api);
+        api.init(httpServer, core);
+
+        app = core.app();
     },
-    start : server.start,
-    stop : server.stop,
+    start : function() {
+        return core.start().then(function() { return api.start(); });
+    },
+    stop : function() {
+        return core.stop().then(function() { return api.stop(); });
+    },
     
-    get app() { return server.app }
+    get app() { return app; }
 };
 
 module.exports = SERIOS;
