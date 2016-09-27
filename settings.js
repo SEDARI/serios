@@ -4,7 +4,16 @@ module.exports = {
         host : "127.0.0.1",
         port : 3000
     },
-    idm : {
+    storage: {
+        type: "mongodb",
+        location: "mongodb://localhost/serios-database",
+        max_number_of_sensor_data_saved : 10000,
+        max_duration_of_sensor_data_saved: {
+            value: 30,
+            // one of 'seconds', 'minutes', 'hours', 'days'.
+            timeunit: "days"
+        }
+    },idm : {
         "gateway_id":"1",
         "token-storage":{
             "dbName":"./tokens.sqlite3",
@@ -66,4 +75,4 @@ module.exports = {
             "cert":"./certs/server.crt"
         }
     }
-}
+};

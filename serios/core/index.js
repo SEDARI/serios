@@ -13,7 +13,7 @@ function init(_settings, _api) {
     // init idm must be first
     mainApp = idm.init(settings);
     
-    storage.init(settings);
+    storage.init(settings.storage);
 }
 
 function start() {

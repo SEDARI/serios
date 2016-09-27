@@ -1,4 +1,4 @@
-/*
+/**
  This file handles storing data.
  It serves as a wrapper for the data storage, which can have different types like MongoDB, SQL or a storage file.
  */
@@ -12,6 +12,9 @@ module.exports = {
     init: init,
 
     // service objects
+    validateServiceObjectSyntax: function (so) {
+        storage.validateServiceObjectSyntax(so);
+    },
     addServiceObject: function (so) {
         storage.addServiceObject(so);
     },
@@ -29,6 +32,9 @@ module.exports = {
     },
 
     // gateways
+    validateGatewaySyntax : function (gateway) {
+        storage.validateGatewaySyntax(gateway);
+    },
     addGateway: function (gateway) {
         storage.addGateway(gateway);
     },
@@ -45,10 +51,13 @@ module.exports = {
 
 /**
  * Initializes the storage.
+ *
+ * @param settings the settings for the storage.
  */
 function init(settings) {
-    // TODO Phil: 11/09/16 get the storage type from e.g. the settings file
-    type = "mongodb";
+
+    var type = settings.type;
     storage = require("./types/" + type);
+    storage.init(settings);
 }
 
