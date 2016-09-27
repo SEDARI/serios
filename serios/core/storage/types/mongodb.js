@@ -10,17 +10,32 @@ var SensorData = null;
 
 module.exports = {
     init: init,
+
+    // handling for service objects
+    validateServiceObjectSyntax : validateServiceObjectSyntax,
     addServiceObject: addServiceObject,
-    editServiceObject: updateServiceObject,
-    removeServiceObject: removeServiceObject
+    updateServiceObject: updateServiceObject,
+    removeServiceObject: removeServiceObject,
+
+    getAllSoForGateway: getAllSoForGateway,
+    getAllSoForUser: getAllSoForUser,
+
+    // handling for gateways
+    validateGatewaySyntax : validateGatewaySyntax,
+    addGateway: addGateway,
+    updateGateway: updateGateway,
+    removeGateway: removeGateway,
+
+    getAllGatewaysForUser: getAllGatewaysForUser
 };
 
 /**
  * Initializes the whole database and calls {@link #initSchema}.
+ *
+ * @param settings the settings for the mongodb database.
  */
-function init() {
-    // TODO Phil: 11/09/16 Get the database address from e.g. the settings file
-    mongoose.connect("mongodb://localhost/databasename", function (err) {
+function init(settings) {
+    mongoose.connect(settings.location, function (err) {
         if (err) {
             console.error(err);
         } else {
@@ -55,7 +70,7 @@ function initSchema() {
             timestamps: true
         });
 
-        schema.methods.getGatewaysForUser(function (userID, cb) {
+        schema.query.getGatewaysForUser(function (userID, cb) {
             return Gateway.find({ownerID: userID}, cb);
         });
 
@@ -137,6 +152,25 @@ function initSchema() {
 }
 
 /**
+ * Validates if a given JSON has the correct Service Object syntax.
+ *
+ * @param so the given JSON
+ * @returns {Promise} whether the given JSON has correct Service Object syntax or not.
+ */
+function validateServiceObjectSyntax(so) {
+    return new Promise(function (resolve, reject) {
+        var val = new ServiceObject(so);
+        val.validateBeforeSave(function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+/**
  * Adds a given Service Object to the database.
  *
  * @param newSo the Service Object that is added.
@@ -158,16 +192,18 @@ function addServiceObject(newSo) {
 /**
  * Update a Service Object with given values in the database.
  *
+ * @param soID the identifier of the service object that is updated.
  * @param so the new values for the service object.
  * @returns {Promise} whether updating was successful or not.
  */
-function updateServiceObject(so) {
+function updateServiceObject(soID, so) {
     return new Promise(function (resolve, reject) {
-        ServiceObject.findByIdAndUpdate(so.id, so, function (err) {
-            if(err)
+        ServiceObject.findByIdAndUpdate(soID, so, function (err) {
+            if (err) {
                 reject(err);
-            else
+            } else {
                 resolve();
+            }
         });
     });
 }
@@ -181,7 +217,7 @@ function updateServiceObject(so) {
 function removeServiceObject(soID) {
     return new Promise(function (resolve, reject) {
         ServiceObject.findByIdAndRemove(soID, function (err) {
-            if(err)
+            if (err)
                 reject(err);
             else
                 resolve();
@@ -189,3 +225,73 @@ function removeServiceObject(soID) {
     });
 }
 
+function getAllSoForGateway(gatewayID) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill method with love
+    })
+}
+
+/**
+ * Returns an array of all ServiceObjects for a given user.
+ *
+ * @param userID the given user.
+ * @returns {Array} An array of Service Objects.
+ */
+function getAllSoForUser(userID) {
+    var soIDs = [];
+    User.getAllGatewaysForUser(userID).forEach(function (entry) {
+            soIDs.push(entry);
+        }
+    );
+    return soIDs;
+}
+
+/**
+ * Validates if a given JSON has the correct Gateway syntax.
+ *
+ * @param gateway the given JSON
+ * @returns {Promise} whether the given JSON has correct Gateway syntax or not.
+ */
+function validateGatewaySyntax(gateway) {
+    return new Promise(function (resolve, reject) {
+        var val = new Gateway(gateway);
+        val.validateBeforeSave(function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function addGateway(newGateway) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill methods with love
+    });
+}
+
+function updateGateway(gatewayID, gateway) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill methods with love
+    });
+}
+
+
+function removeGateway(gatewayID) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill methods with love
+    });
+}
+
+
+/**
+ * Returns an array of all Gateways for a given user.
+ *
+ * @param userID the given user.
+ * @returns {Array} An array of Gateways.
+ */
+function getAllGatewaysForUser(userID) {
+    return User.getGatewaysForUser(userID);
+
+}
