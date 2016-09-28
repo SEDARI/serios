@@ -18,7 +18,7 @@ module.exports = {
 
 function add(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
     }).then(addSO(req.body)).catch(function () {
@@ -30,7 +30,7 @@ function add(req, res) {
 
 function update(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
     }).then(updateSO(req.params.soID, req.body)).catch(function () {
@@ -42,7 +42,7 @@ function update(req, res) {
 
 function remove(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(removeSO(req.params.soID)).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Service Object."});
     }).then(function () {
@@ -52,7 +52,7 @@ function remove(req, res) {
 
 function getAllSoForGateway(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(allSoForGateway(req.params.gatewayID)).catch(function () {
         // TODO Phil 13/09/16: handle error
     }).then(function (sos) {
@@ -62,7 +62,7 @@ function getAllSoForGateway(req, res) {
 
 function getAllSoForUser(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(allSoForUser(req.get('Authorization'))).catch(function () {
         // TODO Phil 13/09/16: handle error
     }).then(function (sos) {

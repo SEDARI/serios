@@ -18,11 +18,11 @@ module.exports = {
 
 function add(req, res) {
     permissionChecker.checkPermission().catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req.body)).catch(function () {
-        res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."})
+        res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
     }).then(addGateway(req.body)).catch(function () {
-        res.status(507).json({msg: "Insufficient Storage. Could not save Gateway."})
+        res.status(507).json({msg: "Insufficient Storage. Could not save Gateway."});
     }).then(function (gatewayID) {
         res.status(200).json({gatewayID: gatewayID}, {msg: "OK. Gateway was added."});
     });
@@ -30,29 +30,29 @@ function add(req, res) {
 
 function update(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req)).catch(function () {
-        res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."})
+        res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
     }).then(updateGateway(req.params.gatewayID, req.body)).catch(function () {
-        res.status(507).json({msg: "Insufficient Storage. Could not update Gateway."})
+        res.status(507).json({msg: "Insufficient Storage. Could not update Gateway."});
     }).then(function () {
-        res.status(200).json({msg: "OK. Gateway was modified."})
+        res.status(200).json({msg: "OK. Gateway was modified."});
     });
 }
 
 function remove(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(removeGateway(req.params.gatewayID)).catch(function () {
-        res.status(400).json({msg: "Bad Request. Could not find Gateway."})
+        res.status(400).json({msg: "Bad Request. Could not find Gateway."});
     }).then(function () {
-        res.status(200).json({msg: "OK. Gateway was removed."})
+        res.status(200).json({msg: "OK. Gateway was removed."});
     });
 }
 
 function getAllGatewaysForUser(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"})
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(allGatewaysForUser()).catch(function () {
         // TODO Phil 12/09/16: handle error
     });

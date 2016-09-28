@@ -228,7 +228,7 @@ function removeServiceObject(soID) {
 function getAllSoForGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
         // TODO Phil 13/09/16: fill method with love
-    })
+    });
 }
 
 /**
