@@ -18,7 +18,7 @@ module.exports = {
 
 function add(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."});
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
     }).then(addSO(req.body)).catch(function () {
@@ -30,7 +30,7 @@ function add(req, res) {
 
 function update(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."});
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
     }).then(updateSO(req.params.soID, req.body)).catch(function () {
@@ -42,7 +42,7 @@ function update(req, res) {
 
 function remove(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."});
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(removeSO(req.params.soID)).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Service Object."});
     }).then(function () {
@@ -52,7 +52,7 @@ function remove(req, res) {
 
 function getAllSoForGateway(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."})
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(allSoForGateway(req.params.gatewayID)).catch(function () {
         // TODO Phil 13/09/16: handle error
     }).then(function (sos) {
@@ -62,7 +62,7 @@ function getAllSoForGateway(req, res) {
 
 function getAllSoForUser(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."});
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(allSoForUser(req.get('Authorization'))).catch(function () {
         // TODO Phil 13/09/16: handle error
     }).then(function (sos) {
@@ -77,7 +77,7 @@ function getAllSoForUser(req, res) {
  * @param so the given service object.
  * @returns {Promise}
  */
-var validateSyntax = new function (so) {
+var validateSyntax = function (so) {
     return storage.validateServiceObjectSyntax(so);
 };
 
@@ -87,7 +87,7 @@ var validateSyntax = new function (so) {
  * @param so the service object that is added.
  * @returns {Promise}
  */
-var addSO = new function (so) {
+var addSO = function (so) {
     return storage.addServiceObject(so);
 };
 
@@ -98,7 +98,7 @@ var addSO = new function (so) {
  * @param so the new values of the service object.
  * @returns {Promise}
  */
-var updateSO = new function (soID, so) {
+var updateSO = function (soID, so) {
     return storage.updateServiceObject(soID, so);
 };
 
@@ -108,7 +108,7 @@ var updateSO = new function (soID, so) {
  * @param soID the service object that is removed.
  * @returns {Promise}
  */
-var removeSO = new function (soID) {
+var removeSO = function (soID) {
     return storage.removeServiceObject(soID);
 };
 
@@ -118,7 +118,7 @@ var removeSO = new function (soID) {
  * @param gatewayID the identifier of the gateway.
  * @returns {Promise}
  */
-var allSoForGateway = new function (gatewayID) {
+var allSoForGateway = function (gatewayID) {
     return storage.getAllSoForGateway(gatewayID);
 };
 
@@ -128,6 +128,6 @@ var allSoForGateway = new function (gatewayID) {
  * @param userID the identifier of the user.
  * @returns {Promise}
  */
-var allSoForUser = new function (userID) {
+var allSoForUser = function (userID) {
     return storage.getAllSoForUser(userID);
 };

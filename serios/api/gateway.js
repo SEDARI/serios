@@ -18,7 +18,7 @@ module.exports = {
 
 function add(req, res) {
     permissionChecker.checkPermission().catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."})
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."})
     }).then(addGateway(req.body)).catch(function () {
@@ -30,7 +30,7 @@ function add(req, res) {
 
 function update(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."})
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(validateSyntax(req)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."})
     }).then(updateGateway(req.params.gatewayID, req.body)).catch(function () {
@@ -42,7 +42,7 @@ function update(req, res) {
 
 function remove(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."})
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(removeGateway(req.params.gatewayID)).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Gateway."})
     }).then(function () {
@@ -52,7 +52,7 @@ function remove(req, res) {
 
 function getAllGatewaysForUser(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
-        res.status(403).json({msg: "Forbidden. Missing authentication."})
+        res.status(403).json({msg: "Forbidden. Access was denied!"})
     }).then(allGatewaysForUser()).catch(function () {
         // TODO Phil 12/09/16: handle error
     });
@@ -64,7 +64,7 @@ function getAllGatewaysForUser(req, res) {
  * @param gateway the gateway that is validated.
  * @returns {Promise}
  */
-var validateSyntax = new function (gateway) {
+var validateSyntax = function (gateway) {
     return storage.validateGatewaySyntax(gateway);
 };
 
@@ -74,7 +74,7 @@ var validateSyntax = new function (gateway) {
  * @param gateway the gateway that is added.
  * @returns {Promise}
  */
-var addGateway = new function (gateway) {
+var addGateway = function (gateway) {
     return storage.addGateway(gateway);
 };
 
@@ -85,7 +85,7 @@ var addGateway = new function (gateway) {
  * @param gateway the new values of the gateway.
  * @returns {Promise}
  */
-var updateGateway = new function (gatewayID, gateway) {
+var updateGateway = function (gatewayID, gateway) {
     return storage.updateGateway(gatewayID, gateway);
 };
 
@@ -95,7 +95,7 @@ var updateGateway = new function (gatewayID, gateway) {
  * @param gatewayID the gateway that is removed.
  * @returns {Promise}
  */
-var removeGateway = new function (gatewayID) {
+var removeGateway = function (gatewayID) {
     return storage.removeGateway(gatewayID);
 };
 
@@ -105,6 +105,6 @@ var removeGateway = new function (gatewayID) {
  * @param userID the identifier of the user.
  * @returns {*}
  */
-var allGatewaysForUser = new function (userID) {
+var allGatewaysForUser = function (userID) {
     return storage.getAllSoForUser(userID);
 };
