@@ -46,6 +46,20 @@ module.exports = {
     },
     getAllGatewaysForUser: function (userID) {
         storage.getAllGatewaysForUser(userID);
+    },
+
+    // sensor data
+    validateSensorDataSyntax : function (data) {
+        storage.validateSensorDataSyntax(data);
+    },
+    addSensorData: function (soID, streamID, data) {
+        storage.addSensorData(soID, streamID, data);
+    },
+    removeSensorData : function (soID, streamID) {
+        storage.removeSensorData(soID, streamID);
+    },
+    getSensorDataForStream : function (soID, streamID) {
+        storage.getSensorDataForStream(soID, streamID);
     }
 };
 

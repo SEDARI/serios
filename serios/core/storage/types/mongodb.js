@@ -1,4 +1,4 @@
-/*
+/**
  This file holds all the storage logic using a MongoDB database with mongoose.
  */
 var mongoose = require("mongoose");
@@ -12,7 +12,7 @@ module.exports = {
     init: init,
 
     // handling for service objects
-    validateServiceObjectSyntax : validateServiceObjectSyntax,
+    validateServiceObjectSyntax: validateServiceObjectSyntax,
     addServiceObject: addServiceObject,
     updateServiceObject: updateServiceObject,
     removeServiceObject: removeServiceObject,
@@ -21,12 +21,18 @@ module.exports = {
     getAllSoForUser: getAllSoForUser,
 
     // handling for gateways
-    validateGatewaySyntax : validateGatewaySyntax,
+    validateGatewaySyntax: validateGatewaySyntax,
     addGateway: addGateway,
     updateGateway: updateGateway,
     removeGateway: removeGateway,
 
-    getAllGatewaysForUser: getAllGatewaysForUser
+    getAllGatewaysForUser: getAllGatewaysForUser,
+
+    // handling for sensor data
+    validateSensorDataSyntax: validateSensorDataSyntax,
+    addSensorData: addSensorData,
+    removeSensorData: removeSensorData,
+    getAllSensorDataForStream: getAllSensorDataForStream
 };
 
 /**
@@ -277,13 +283,11 @@ function updateGateway(gatewayID, gateway) {
     });
 }
 
-
 function removeGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
         // TODO Phil 13/09/16: fill methods with love
     });
 }
-
 
 /**
  * Returns an array of all Gateways for a given user.
@@ -293,5 +297,40 @@ function removeGateway(gatewayID) {
  */
 function getAllGatewaysForUser(userID) {
     return User.getGatewaysForUser(userID);
+}
 
+/**
+ * Validates if a given JSON has the correct SensorData syntax.
+ *
+ * @param data the given JSON
+ * @returns {Promise} whether the given JSON has correct SensorData syntax or not.
+ */
+function validateSensorDataSyntax(data) {
+    return new Promise(function (resolve, reject) {
+        var val = new SensorData(data);
+        val.validateBeforeSave(function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+function addSensorData(soID, streamID, data) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill methods with love
+    });
+}
+
+function removeSensorData(soID, streamID) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill methods with love
+    });
+}
+
+function getAllSensorDataForStream(soID, streamID) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 13/09/16: fill methods with love
+    });
 }
