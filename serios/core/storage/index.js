@@ -21,6 +21,9 @@ module.exports = {
     updateServiceObject: function (soID, so) {
         storage.updateServiceObject(soID, so);
     },
+    getServiceObject : function (soID) {
+        storage.getServiceObject(soID);
+    },
     removeServiceObject: function (soID) {
         storage.removeServiceObject(soID);
     },
@@ -40,6 +43,9 @@ module.exports = {
     },
     updateGateway: function (gatewayID, gateway) {
         storage.updateGateway(gatewayID, gateway);
+    },
+    getGateway: function (gatewayID, gateway) {
+        storage.getGateway(gatewayID, gateway);
     },
     removeGateway: function (gatewayID) {
         storage.removeGateway(gatewayID);

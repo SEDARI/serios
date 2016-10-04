@@ -3,12 +3,13 @@
  *
  * This includes API logic as well as calling the storage.
  */
-var permissionChecker = require("./permissionchecker");
+var checkPermission = require("./permissionchecker").checkPermission();
 var storage = require("../core/storage");
 
 module.exports = {
     add: add,
     update: update,
+    get: get,
     remove: remove,
 
     getAllSoForGateway: getAllSoForGateway,
@@ -17,7 +18,7 @@ module.exports = {
 };
 
 function add(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
@@ -29,7 +30,7 @@ function add(req, res) {
 }
 
 function update(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
@@ -40,8 +41,18 @@ function update(req, res) {
     });
 }
 
+function get(req, res) {
+    checkPermission(req).catch(function () {
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
+    }).then(getSO(req.params.gatewayID)).catch(function () {
+        res.status(400).json({msg: "Bad Request. Could not find Service Object."});
+    }).then(function (so) {
+        res.status(200).json(so);
+    });
+}
+
 function remove(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(removeSO(req.params.soID)).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Service Object."});
@@ -51,7 +62,7 @@ function remove(req, res) {
 }
 
 function getAllSoForGateway(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(allSoForGateway(req.params.gatewayID)).catch(function () {
         // TODO Phil 13/09/16: handle error
@@ -61,7 +72,7 @@ function getAllSoForGateway(req, res) {
 }
 
 function getAllSoForUser(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(allSoForUser(req.get('Authorization'))).catch(function () {
         // TODO Phil 13/09/16: handle error
@@ -100,6 +111,16 @@ var addSO = function (so) {
  */
 var updateSO = function (soID, so) {
     return storage.updateServiceObject(soID, so);
+};
+
+/**
+ * Calls the storage to get the description of a given service object.
+ *
+ * @param soID the identifier of the requested service object.
+ * @returns {Promise}
+ */
+var getSO = function (soID) {
+    return storage.getServiceObject(soID);
 };
 
 /**

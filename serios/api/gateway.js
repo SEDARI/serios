@@ -4,12 +4,13 @@
  * This includes API logic as well as calling the storage.
  */
 
-var permissionChecker = require("./permissionchecker");
+var checkPermission = require("./permissionchecker").checkPermission();
 var storage = require("../core/storage");
 
 module.exports = {
     add: add,
     update: update,
+    get: get,
     remove: remove,
 
     getAllGatewaysForUser: getAllGatewaysForUser
@@ -17,7 +18,7 @@ module.exports = {
 
 
 function add(req, res) {
-    permissionChecker.checkPermission().catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req.body)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
@@ -29,7 +30,7 @@ function add(req, res) {
 }
 
 function update(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(validateSyntax(req)).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
@@ -40,8 +41,18 @@ function update(req, res) {
     });
 }
 
+function get(req, res) {
+    checkPermission(req).catch(function () {
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
+    }).then(getGateway(req.params.gatewayID)).catch(function () {
+        res.status(400).json({msg: "Bad Request. Could not find Gateway."});
+    }).then(function (gateway) {
+        res.status(200).json(gateway);
+    });
+}
+
 function remove(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(removeGateway(req.params.gatewayID)).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Gateway."});
@@ -51,7 +62,7 @@ function remove(req, res) {
 }
 
 function getAllGatewaysForUser(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(allGatewaysForUser()).catch(function () {
         // TODO Phil 12/09/16: handle error
@@ -87,6 +98,16 @@ var addGateway = function (gateway) {
  */
 var updateGateway = function (gatewayID, gateway) {
     return storage.updateGateway(gatewayID, gateway);
+};
+
+/**
+ * Calls the storage to get the description of a gateway.
+ *
+ * @param gatewayID the identifier of the requested gateway.
+ * @returns {Promise}
+ */
+var getGateway = function (gatewayID) {
+    return storage.getGateway(gatewayID);
 };
 
 /**
