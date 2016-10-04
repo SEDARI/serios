@@ -11,7 +11,7 @@
     "main": "serios.js",
     "scripts": {
         "start": "node serios.js",
-        "test" : "./node_modules/.bin/grunt"
+        "test" : "./node_modules/.bin/grunt && ./node_modules/.bin/mocha"
     },
     "contributors": [
         {
@@ -45,6 +45,8 @@
     "optionalDependencies": {
     },
     "devDependencies": {
+        "chai": "^3.5.0",
+        "chai-http": "^3.0.0",
         "grunt": "1.0.1",
         "grunt-chmod": "1.1.1",
         "grunt-cli": "1.2.0",
