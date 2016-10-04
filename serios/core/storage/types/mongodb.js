@@ -15,6 +15,7 @@ module.exports = {
     validateServiceObjectSyntax: validateServiceObjectSyntax,
     addServiceObject: addServiceObject,
     updateServiceObject: updateServiceObject,
+    getServiceObject: getServiceObject,
     removeServiceObject: removeServiceObject,
 
     getAllSoForGateway: getAllSoForGateway,
@@ -24,6 +25,7 @@ module.exports = {
     validateGatewaySyntax: validateGatewaySyntax,
     addGateway: addGateway,
     updateGateway: updateGateway,
+    getGateway: getGateway,
     removeGateway: removeGateway,
 
     getAllGatewaysForUser: getAllGatewaysForUser,
@@ -70,15 +72,19 @@ function initSchema() {
         var schema = mongoose.Schema({
             userID: String,
             email: String,
-            // TODO Phil: 11/09/16 handle password storage differently?
-            password: String,
             apitoken: String,
             timestamps: true
         });
 
-        schema.query.getGatewaysForUser(function (userID, cb) {
+        schema.query.getGatewaysForUser = function (userID, cb) {
             return Gateway.find({ownerID: userID}, cb);
-        });
+        };
+
+        schema.query.getServiceObjectsForUser = function (userID, cb) {
+            return getGatewaysForUser(userID, cb).forEach(function (gateway) {
+                Gateway.getAllSoForGateway(gateway.id);
+            });
+        };
 
         return schema;
     }
@@ -88,15 +94,15 @@ function initSchema() {
             gatewayID: String,
             gatewayToken: String,
             ownerID: String,
-            hostname: String,
+            URL: String,
             port: Number,
             protocol: String,
             timestamps: true
         });
 
-        schema.query.getServiceObjectsForGateway(function (gatewayID, cb) {
+        schema.query.getServiceObjectsForGateway = function (gatewayID, cb) {
             return ServiceObject.find({gatewayID: gatewayID}, cb);
-        });
+        };
 
         return schema;
     }
@@ -141,6 +147,8 @@ function initSchema() {
     function createSensorDataSchema() {
 
         var schema = mongoose.Schema({
+            soID: String,
+            streamID: String,
             channels: [createChannelDataSchema()],
             timestamps: true
         });
@@ -215,6 +223,25 @@ function updateServiceObject(soID, so) {
 }
 
 /**
+ * Get the description of a Service Object from the database.
+ *
+ * @param soID the identifier of the service object that requested.
+ * @returns {Promise} whether the Service Object exits or not.
+ */
+function getServiceObject(soID) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 04/10/16: determine which fields will be returned.
+        ServiceObject.findById(soID).select("id gatewayID name description streams").exec(function (err, so) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(so);
+            }
+        });
+    });
+}
+
+/**
  * Removes a Service Object for a given soID from the database.
  *
  * @param soID the given soID used to identify the Service Object.
@@ -222,6 +249,7 @@ function updateServiceObject(soID, so) {
  */
 function removeServiceObject(soID) {
     return new Promise(function (resolve, reject) {
+        // TODO Phil 04/10/16: remove appropriate sensor data as well?
         ServiceObject.findByIdAndRemove(soID, function (err) {
             if (err)
                 reject(err);
@@ -231,9 +259,21 @@ function removeServiceObject(soID) {
     });
 }
 
+/**
+ * Returns an array of all ServiceObject for a given gateway.
+ *
+ * @param gatewayID the given gateway.
+ * @returns {Promise} Promise with an array of Service Objects.
+ */
 function getAllSoForGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill method with love
+        Gateway.getServiceObjectsForGateway(gatewayID).select("id").exec(function (err, soIDs) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(soIDs);
+            }
+        });
     });
 }
 
@@ -241,15 +281,13 @@ function getAllSoForGateway(gatewayID) {
  * Returns an array of all ServiceObjects for a given user.
  *
  * @param userID the given user.
- * @returns {Array} An array of Service Objects.
+ * @returns {Promise} Promise with an array of Service Objects.
  */
 function getAllSoForUser(userID) {
-    var soIDs = [];
-    User.getAllGatewaysForUser(userID).forEach(function (entry) {
-            soIDs.push(entry);
-        }
-    );
-    return soIDs;
+    return new Promise(function (resolve, reject) {
+        var soIDs = User.getServiceObjectsForUser(userID).select("id");
+        resolve(soIDs);
+    });
 }
 
 /**
@@ -271,21 +309,84 @@ function validateGatewaySyntax(gateway) {
     });
 }
 
+/**
+ * Adds a given Gateway to the database.
+ *
+ * @param newGateway the Gateway that is added.
+ * @returns {Promise} whether adding was successful or not.
+ */
 function addGateway(newGateway) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill methods with love
+        var gw = new Gateway(newGateway);
+        gw.save(function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(gw.id);
+            }
+        });
     });
 }
 
+/**
+ * Update a Gateway with given values in the database.
+ *
+ * @param gatewayID the identifier of the gateway that is updated.
+ * @param gateway the new values for the gateway.
+ * @returns {Promise} whether updating was successful or not.
+ */
 function updateGateway(gatewayID, gateway) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill methods with love
+        Gateway.findByIdAndUpdate(gatewayID, gateway, function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
     });
 }
 
+/**
+ * Get the description of a Gateway from the database.
+ *
+ * @param gatewayID the identifier of the requested gateway.
+ * @returns {Promise} whether the Gateway exists or not.
+ */
+function getGateway(gatewayID) {
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 04/10/16: determine which fields will be returned.
+        Gateway.findById(gatewayID).select("id URL port").exec(function (err, gw) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(gw);
+            }
+        });
+    });
+}
+
+/**
+ * Removes a Gateway and its appropriate Service Objects from the database.
+ *
+ * @param gatewayID the identifier of the gateway that is deleted.
+ * @returns {Promise} whether removing was successful or not.
+ */
 function removeGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill methods with love
+        Gateway.findByIdAndRemove(gatewayID, function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                ServiceObject.getServiceObjectsForGateway(gatewayID).remove(function (err) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            }
+        });
     });
 }
 
@@ -293,10 +394,19 @@ function removeGateway(gatewayID) {
  * Returns an array of all Gateways for a given user.
  *
  * @param userID the given user.
- * @returns {Array} An array of Gateways.
+ * @returns {Promise} Promise with an array of Gateways.
  */
 function getAllGatewaysForUser(userID) {
-    return User.getGatewaysForUser(userID);
+    return new Promise(function (resolve, reject) {
+        // TODO Phil 04/10/16: determine which fields will be returned.
+        User.getGatewaysForUser(userID).select("id URL port").exec(function (err, gateways) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(gateways);
+            }
+        });
+    });
 }
 
 /**
@@ -317,20 +427,68 @@ function validateSensorDataSyntax(data) {
         });
     });
 }
+
+/**
+ * Adds sensor data to the database for a given stream.
+ *
+ * @param soID the service object of the stream.
+ * @param streamID the given stream.
+ * @param data the added sensor data.
+ * @returns {Promise} whether adding was successful or not.
+ */
 function addSensorData(soID, streamID, data) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill methods with love
+        data.soID = soID;
+        data.streamID = streamID;
+        var sensorData = new SensorData(data);
+
+        sensorData.save(function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
     });
 }
 
+/**
+ * Removes all sensor data in the database associated to a given stream.
+ *
+ * @param soID the service object of the stream.
+ * @param streamID the given stream.
+ * @returns {Promise} whether removing was successful or not.
+ */
 function removeSensorData(soID, streamID) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill methods with love
+        SensorData.findAll({soID: soID, streamID: streamID}).remove(function (err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
     });
 }
 
+/**
+ * Returns an array of all sensor data for a given stream.
+ *
+ * @param soID the service object of the stream.
+ * @param streamID the given stream.
+ * @returns {Promise} Promise with an array of Sensor Data.
+ */
 function getAllSensorDataForStream(soID, streamID) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 13/09/16: fill methods with love
+        SensorData.findAll({
+            soID: soID,
+            streamID: streamID
+        }).select("soID streamID channels").exec(function (err, data) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
     });
 }
