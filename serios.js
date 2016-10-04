@@ -8,6 +8,7 @@ var util = require('util');
 var SERIOS = require("./serios/serios.js");
 
 var app = express();
+var server = null;
 
 var settingsFile = "./settings";
 try {
@@ -59,7 +60,7 @@ SERIOS.start().then(function() {
                       process.tite = "SERIOS Server";
                       console.log('Server now running at '+getListenPath());
                   });
-}).otherwise(function(err) {
+}).catch(function(err) {
     console.log('Failed to start server');
     console.log(err);
 });
