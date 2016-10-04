@@ -70,11 +70,12 @@ function initSchema() {
 
     function createUserSchema() {
         var schema = mongoose.Schema({
-            userID: String,
-            email: String,
-            apitoken: String,
-            timestamps: true
-        });
+                userID: String,
+                email: String,
+                apitoken: String
+            },
+            {timestamps: true}
+        );
 
         schema.query.getGatewaysForUser = function (userID, cb) {
             return Gateway.find({ownerID: userID}, cb);
@@ -91,14 +92,14 @@ function initSchema() {
 
     function createGatewaySchema() {
         var schema = mongoose.Schema({
-            gatewayID: String,
-            gatewayToken: String,
-            ownerID: String,
-            URL: String,
-            port: Number,
-            protocol: String,
-            timestamps: true
-        });
+                gatewayID: String,
+                gatewayToken: String,
+                ownerID: String,
+                URL: String,
+                port: Number,
+                protocol: String
+            },
+            {timestamps: true});
 
         schema.query.getServiceObjectsForGateway = function (gatewayID, cb) {
             return ServiceObject.find({gatewayID: gatewayID}, cb);
@@ -109,14 +110,14 @@ function initSchema() {
 
     function createServiceObjectSchema() {
         var schema = mongoose.Schema({
-            soID: String,
-            gatewayID: String,
-            name: String,
-            description: String,
-            streams: [createSensorStreamSchema()],
-            policy: [],
-            timestamps: true
-        });
+                soID: String,
+                gatewayID: String,
+                name: String,
+                description: String,
+                streams: [createSensorStreamSchema()],
+                policy: []
+            },
+            {timestamps: true});
 
         function createSensorStreamSchema() {
             var schema = mongoose.Schema({
@@ -147,11 +148,11 @@ function initSchema() {
     function createSensorDataSchema() {
 
         var schema = mongoose.Schema({
-            soID: String,
-            streamID: String,
-            channels: [createChannelDataSchema()],
-            timestamps: true
-        });
+                soID: String,
+                streamID: String,
+                channels: [createChannelDataSchema()]
+            },
+            {timestamps: true});
 
         function createChannelDataSchema() {
             var schema = mongoose.Schema({
