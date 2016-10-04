@@ -3,8 +3,10 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var passport = require('passport');
 
-// API File for service objects (feel free to change names)
+// API files for different data types
 var serviceObject = require('./serviceobject');
+var gateway = require("./gateway");
+var sensorData = require("./sensordata");
 
 var API_VERSION = 1;
 
@@ -22,20 +24,35 @@ function init(_server, _core) {
     server = _server;
     settings = _core.settings;
     core = _core;
-    
-    app = express();  
+
+    app = express();
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
     app.use(errorHandler);
 
-    app.get    ("/version",  getVersion);
+    app.get("/version", getVersion);
+
+    // API for Gateways
+    app.post("/gateway/:gatewayid", gateway.add);
+    app.put("/gateway/:gatewayid", gateway.update);
+    app.get("/gateway/:gatewayid", gateway.get);
+    app.delete("/gateway/:gatewayid", gateway.remove);
+
+    app.get("/gateway", gateway.getAllGatewaysForUser);
 
     // API for Service Objects
-    app.post   ("/so/",      serviceObject.add);
-    app.put    ("/so/:soID", serviceObject.update);
-    app.delete ("/so/:soID", serviceObject.remove);
+    app.post("/", serviceObject.add);
+    app.put("/:soID", serviceObject.update);
+    app.get("/:soID", serviceObject.get);
+    app.delete("/:soID", serviceObject.remove);
 
-    core.app().use(app);
+    app.get("/SOs", serviceObject.getAllSoForUser);
+    app.get("/:gateway/SOs", serviceObject.getAllSoForGateway);
+
+    // API for Sensor Data
+    app.put("/:soID/streams/:streamid", sensorData.add);
+    app.get("/:soID/streams/:streamid/:options", sensorData.getAllData);
+    app.delete("/:soID/streams/:streamid", sensorData.remove);
 }
 
 function getVersion(req, res) {
