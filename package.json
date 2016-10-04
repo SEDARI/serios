@@ -40,7 +40,8 @@
         "q": "1.4.1",
         "body-parser": "1.15.2",
         "agile-idm-web-ui": "https://github.com/Agile-IoT/agile-idm-web-ui",
-        "neros" : "https://github.com/SEDARI/neros"
+        "neros": "https://github.com/SEDARI/neros",
+        "passport": "0.3.2"
     },
     "optionalDependencies": {
     },
