@@ -38,7 +38,7 @@ function remove(req, res) {
 function getSensorData(req, res) {
     permissionChecker.checkPermission(req).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(getAllSensorData(req.params.soID, req.params.streamID)).catch(function () {
+    }).then(getAllSensorData(req.params.soID, req.params.streamID, req.params.options)).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
     }).then(function (data) {
         res.status(200).json({data: data});
