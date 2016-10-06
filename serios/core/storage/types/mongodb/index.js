@@ -3,10 +3,10 @@
  */
 var mongoose = require("mongoose");
 
-var User = null;
-var Gateway = null;
-var ServiceObject = null;
-var SensorData = null;
+var User = require("../mongodb/models").User;
+var Gateway = require("../mongodb/models").Gateway;
+var ServiceObject = require("../mongodb/models").ServiceObject;
+var SensorData = require("../mongodb/models").SensorData;
 
 module.exports = {
     init: init,
@@ -38,7 +38,7 @@ module.exports = {
 };
 
 /**
- * Initializes the whole database and calls {@link #initSchema}.
+ * Initializes the whole database.
  *
  * @param settings the settings for the mongodb database.
  */
@@ -46,124 +46,8 @@ function init(settings) {
     mongoose.connect(settings.location, function (err) {
         if (err) {
             console.error(err);
-        } else {
-            initSchema();
         }
     });
-}
-
-/**
- * Initializes the database schema.
- * Creates the schema for:
- * <p><ul>
- * <li> User
- * <li> Gateway
- * <li> ServiceObject
- * <li> SensorData
- * </ul><p>
- */
-function initSchema() {
-    User = mongoose.model("User", createUserSchema());
-    Gateway = mongoose.model("Gateway", createGatewaySchema());
-    ServiceObject = mongoose.model("ServiceObject", createServiceObjectSchema());
-    SensorData = mongoose.model("SensorData", createSensorDataSchema());
-
-    function createUserSchema() {
-        var schema = mongoose.Schema({
-                userID: String,
-                email: String,
-                apitoken: String
-            },
-            {timestamps: true}
-        );
-
-        schema.query.getGatewaysForUser = function (userID, cb) {
-            return Gateway.find({ownerID: userID}, cb);
-        };
-
-        schema.query.getServiceObjectsForUser = function (userID, cb) {
-            return getGatewaysForUser(userID, cb).forEach(function (gateway) {
-                Gateway.getAllSoForGateway(gateway.id);
-            });
-        };
-
-        return schema;
-    }
-
-    function createGatewaySchema() {
-        var schema = mongoose.Schema({
-                gatewayID: String,
-                gatewayToken: String,
-                ownerID: String,
-                URL: String,
-                port: Number,
-                protocol: String
-            },
-            {timestamps: true});
-
-        schema.query.getServiceObjectsForGateway = function (gatewayID, cb) {
-            return ServiceObject.find({gatewayID: gatewayID}, cb);
-        };
-
-        return schema;
-    }
-
-    function createServiceObjectSchema() {
-        var schema = mongoose.Schema({
-                soID: String,
-                gatewayID: String,
-                name: String,
-                description: String,
-                streams: [createSensorStreamSchema()],
-                policy: []
-            },
-            {timestamps: true});
-
-        function createSensorStreamSchema() {
-            var schema = mongoose.Schema({
-                streamID: String,
-                sensorName: String,
-                description: String,
-                channels: [createSensorChannelSchema()]
-            });
-
-            function createSensorChannelSchema() {
-                var schema = mongoose.Schema({
-                    name: String,
-                    dataType: {
-                        type: String,
-                        enum: ['number', 'string', 'boolean', 'geo_location']
-                    },
-                    unit: String
-                });
-                return schema;
-            }
-
-            return schema;
-        }
-
-        return schema;
-    }
-
-    function createSensorDataSchema() {
-
-        var schema = mongoose.Schema({
-                soID: String,
-                streamID: String,
-                channels: [createChannelDataSchema()]
-            },
-            {timestamps: true});
-
-        function createChannelDataSchema() {
-            var schema = mongoose.Schema({
-                name: String,
-                value: String
-            });
-            return schema;
-        }
-
-        return schema;
-    }
 }
 
 /**
@@ -269,7 +153,7 @@ function removeServiceObject(soID) {
 function getAllSoForGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
         Gateway.getServiceObjectsForGateway(gatewayID).select("id").exec(function (err, soIDs) {
-            if (err) {
+            if (err || Object.keys(soIDs).length() == 0) {
                 reject(err);
             } else {
                 resolve(soIDs);
@@ -286,8 +170,13 @@ function getAllSoForGateway(gatewayID) {
  */
 function getAllSoForUser(userID) {
     return new Promise(function (resolve, reject) {
-        var soIDs = User.getServiceObjectsForUser(userID).select("id");
-        resolve(soIDs);
+        User.getServiceObjectsForUser(userID).select("id").exec(function (err, soIDs) {
+            if (err || Object.keys(soIDs).length() == 0) {
+                reject(err);
+            } else {
+                resolve(soIDs);
+            }
+        });
     });
 }
 
@@ -401,7 +290,7 @@ function getAllGatewaysForUser(userID) {
     return new Promise(function (resolve, reject) {
         // TODO Phil 04/10/16: determine which fields will be returned.
         User.getGatewaysForUser(userID).select("id URL port").exec(function (err, gateways) {
-            if (err) {
+            if (err || Object.keys(soIDs).length() == 0) {
                 reject(err);
             } else {
                 resolve(gateways);
