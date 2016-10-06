@@ -153,7 +153,7 @@ function removeServiceObject(soID) {
 function getAllSoForGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
         Gateway.getServiceObjectsForGateway(gatewayID).select("id").exec(function (err, soIDs) {
-            if (err || Object.keys(soIDs).length() === 0) {
+            if (err || Object.keys(soIDs).length === 0) {
                 reject(err);
             } else {
                 resolve(soIDs);
@@ -171,7 +171,7 @@ function getAllSoForGateway(gatewayID) {
 function getAllSoForUser(userID) {
     return new Promise(function (resolve, reject) {
         User.getServiceObjectsForUser(userID).select("id").exec(function (err, soIDs) {
-            if (err || Object.keys(soIDs).length() === 0) {
+            if (err || Object.keys(soIDs).length === 0) {
                 reject(err);
             } else {
                 resolve(soIDs);
@@ -290,7 +290,7 @@ function getAllGatewaysForUser(userID) {
     return new Promise(function (resolve, reject) {
         // TODO Phil 04/10/16: determine which fields will be returned.
         User.getGatewaysForUser(userID).select("id URL port").exec(function (err, gateways) {
-            if (err || Object.keys(soIDs).length() === 0) {
+            if (err || Object.keys(soIDs).length === 0) {
                 reject(err);
             } else {
                 resolve(gateways);
