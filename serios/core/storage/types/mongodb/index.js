@@ -57,6 +57,7 @@ function init(settings) {
  * @returns {Promise} whether the given JSON has correct Service Object syntax or not.
  */
 function validateServiceObjectSyntax(so) {
+    // TODO Phil 08/10/16: extend validation
     return new Promise(function (resolve, reject) {
         var val = new ServiceObject(so);
         val.validateBeforeSave(function (err) {
@@ -187,9 +188,10 @@ function getAllSoForUser(userID) {
  * @returns {Promise} whether the given JSON has correct Gateway syntax or not.
  */
 function validateGatewaySyntax(gateway) {
+    // TODO Phil 08/10/16: extend validation
     return new Promise(function (resolve, reject) {
         var val = new Gateway(gateway);
-        val.validateBeforeSave(function (err) {
+        val.validate(function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -306,9 +308,11 @@ function getAllGatewaysForUser(userID) {
  * @returns {Promise} whether the given JSON has correct SensorData syntax or not.
  */
 function validateSensorDataSyntax(data) {
+    // TODO Phil 08/10/16: extend validation
+
     return new Promise(function (resolve, reject) {
         var val = new SensorData(data);
-        val.validateBeforeSave(function (err) {
+        val.validate(function (err) {
             if (err) {
                 reject(err);
             } else {

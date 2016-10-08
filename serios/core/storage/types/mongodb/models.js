@@ -16,13 +16,14 @@ module.exports = {
 };
 
 /**
+ * FIXME Phil 08/10/16: Should be deleted, but the queries are needed. Evaluate how this should work out.
+ *
  * Creates a mongoose schema for Users.
  *
  * @returns {mongoose.Schema}
  */
 function UserSchema() {
     var schema = mongoose.Schema({
-            userID: String,
             email: String,
             apitoken: String
         },
@@ -48,12 +49,28 @@ function UserSchema() {
  */
 function GatewaySchema() {
     var schema = mongoose.Schema({
-            gatewayID: String,
-            gatewayToken: String,
-            ownerID: String,
-            URL: String,
-            port: Number,
-            protocol: String
+            ownerID: {
+                type: String,
+                required: true
+            },
+            name: {
+                type: String,
+                required: true
+            },
+            URL: {
+                type: String,
+                required: true
+            },
+            port: {
+                type: Number,
+                min: 1,
+                max: 65535,
+                required: true
+            },
+            protocol: {
+                type: String,
+                required: true
+            }
         },
         {timestamps: true});
 
@@ -71,31 +88,64 @@ function GatewaySchema() {
  */
 function ServiceObjectSchema() {
     var schema = mongoose.Schema({
-            soID: String,
-            gatewayID: String,
-            name: String,
-            description: String,
-            streams: [SensorStreamSchema()],
-            policy: []
+            gatewayID: {
+                type: String,
+                required: true
+            },
+            name: {
+                type: String,
+                required: true
+            },
+            description: {
+                type: String,
+                required: true
+            },
+            streams: {
+                type: [SensorStreamSchema()],
+                required: true
+            },
+            policy: {
+                type: [],
+                required: false
+            }
         },
         {timestamps: true});
 
     function SensorStreamSchema() {
         var schema = mongoose.Schema({
-            streamID: String,
-            sensorName: String,
-            description: String,
-            channels: [SensorChannelSchema()]
+            streamID: {
+                type: String,
+                required: true
+            },
+            sensorName: {
+                type: String,
+                required: true
+            },
+            description: {
+                type: String,
+                required: true
+            },
+            channels: {
+                type: [SensorChannelSchema()],
+                required: true
+            }
         });
 
         function SensorChannelSchema() {
             var schema = mongoose.Schema({
-                name: String,
+                name: {
+                    type: String,
+                    required: true
+                },
                 dataType: {
                     type: String,
-                    enum: ['number', 'string', 'boolean', 'geo_location']
+                    enum: ['number', 'string', 'boolean', 'geo_location'],
+                    required: true
                 },
-                unit: String
+                unit: {
+                    type: String,
+                    required: true
+                }
             });
             return schema;
         }
@@ -112,18 +162,32 @@ function ServiceObjectSchema() {
  * @returns {mongoose.Schema}
  */
 function SensorDataSchema() {
-
     var schema = mongoose.Schema({
-            soID: String,
-            streamID: String,
-            channels: [ChannelDataSchema()]
+            soID: {
+                type: String,
+                required: true
+            },
+            streamID: {
+                type: String,
+                required: true
+            },
+            channels: {
+                type: [ChannelDataSchema()],
+                required: true
+            }
         },
         {timestamps: true});
 
     function ChannelDataSchema() {
         var schema = mongoose.Schema({
-            name: String,
-            value: String
+            name: {
+                type: String,
+                required: true
+            },
+            value: {
+                type: String,
+                required: true
+            }
         });
         return schema;
     }
