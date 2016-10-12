@@ -3,10 +3,10 @@
  */
 var mongoose = require("mongoose");
 
-var User = mongoose.model("User", UserSchema);
-var Gateway = mongoose.model("Gateway", GatewaySchema);
-var ServiceObject = mongoose.model("ServiceObject", ServiceObjectSchema);
-var SensorData = mongoose.model("SensorData", SensorDataSchema);
+var User = mongoose.model("User", UserSchema());
+var Gateway = mongoose.model("Gateway", GatewaySchema());
+var ServiceObject = mongoose.model("ServiceObject", ServiceObjectSchema());
+var SensorData = mongoose.model("SensorData", SensorDataSchema());
 
 module.exports = {
     User: User,
