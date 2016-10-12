@@ -42,7 +42,10 @@ module.exports = function(grunt) {
                 reporter: 'spec'
             },
             core: {
-                src: ['test/**/*_spec.js'], 
+                src: ['test/mongodb-test.js']
+                // this should actually stand here.
+                // src: ['test/**/*-test.js']
+
             }
         },
         jshint: {
