@@ -43,11 +43,7 @@ module.exports = {
  * @param settings the settings for the mongodb database.
  */
 function init(settings) {
-    mongoose.connect(settings.location, function (err) {
-        if (err) {
-            console.error(err);
-        }
-    });
+    mongoose.createConnection(settings.location);
 }
 
 /**
@@ -355,7 +351,7 @@ function addSensorData(soID, streamID, data) {
  */
 function removeSensorData(soID, streamID) {
     return new Promise(function (resolve, reject) {
-        SensorData.findAll({soID: soID, streamID: streamID}).remove(function (err) {
+        SensorData.find({soID: soID, streamID: streamID}).remove(function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -374,7 +370,7 @@ function removeSensorData(soID, streamID) {
  */
 function getAllSensorDataForStream(soID, streamID) {
     return new Promise(function (resolve, reject) {
-        SensorData.findAll({
+        SensorData.find({
             soID: soID,
             streamID: streamID
         }).select("soID streamID channels").exec(function (err, data) {
