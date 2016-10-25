@@ -2,8 +2,8 @@
  This file holds all the storage logic using a MongoDB database with mongoose.
  */
 var mongoose = require("mongoose");
+mongoose.Promise = global.Promise;
 
-var User = require("../mongodb/models").User;
 var Gateway = require("../mongodb/models").Gateway;
 var ServiceObject = require("../mongodb/models").ServiceObject;
 var SensorData = require("../mongodb/models").SensorData;
@@ -55,6 +55,11 @@ function init(settings) {
 function validateServiceObjectSyntax(so) {
     // TODO Phil 08/10/16: extend validation
     return new Promise(function (resolve, reject) {
+        var gateway = so.gateway;
+        if (!gateway.gatewayID && !(gateway.name && gateway.URL)) {
+            reject();
+        }
+        val.gatewayID = "spaceholder for validation";
         var val = new ServiceObject(so);
         val.validateBeforeSave(function (err) {
             if (err) {
@@ -68,20 +73,57 @@ function validateServiceObjectSyntax(so) {
 
 /**
  * Adds a given Service Object to the database.
+ * Also adds, if not yet specified, a Gateway to the database. This gateway has to be a property
+ * of the sent Service Object.
  *
  * @param newSo the Service Object that is added.
  * @returns {Promise} whether adding was successful or not.
  */
 function addServiceObject(newSo) {
     return new Promise(function (resolve, reject) {
-        var so = new ServiceObject(newSo);
-        so.save(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(so.id);
-            }
-        });
+        var gateway = newSo.gateway;
+        if (gateway.gatewayID && gateway.gatewayID !== "") {
+            Gateway.findById(gateway.gatewayID, function (err, foundGateway) {
+                if (!err && foundGateway) {
+                    newSo.gatewayID = gateway.gatewayID;
+                    saveSO(newSo);
+                } else {
+                    reject(err);
+                }
+            });
+        } else if (gateway.name && gateway.URL) {
+            Gateway.findOne({name: gateway.name, URL: gateway.URL}, function (err, foundGateway) {
+                if (err) {
+                    reject(err);
+                } else if (foundGateway) {
+                    // existing gateway found. save SO for this gateway
+                    newSo.gatewayID = foundGateway.id;
+                    saveSO(newSo);
+                } else {
+                    // no existing gateway found? create a new one with the given information
+                    gateway.ownerID = ""; // TODO Phil 13/10/16: Get owner ID
+                    addGateway(gateway).then(function (gatewayID) {
+                        newSo.gatewayID = gatewayID;
+                        saveSO(newSo);
+                    }).catch(function (err) {
+                        reject(err);
+                    });
+                }
+            });
+        } else {
+            reject(new Error("Error: Could not save Service Object. No Gateway specified or found."));
+        }
+
+        function saveSO(newSo) {
+            var so = new ServiceObject(newSo);
+            so.save(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(so.id);
+                }
+            });
+        }
     });
 }
 
@@ -149,7 +191,7 @@ function removeServiceObject(soID) {
  */
 function getAllSoForGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
-        Gateway.getServiceObjectsForGateway(gatewayID).select("id").exec(function (err, soIDs) {
+        ServiceObject.find({gatewayID: gatewayID}).select("id").exec(function (err, soIDs) {
             if (err || Object.keys(soIDs).length === 0) {
                 reject(err);
             } else {
@@ -167,13 +209,24 @@ function getAllSoForGateway(gatewayID) {
  */
 function getAllSoForUser(userID) {
     return new Promise(function (resolve, reject) {
-        User.getServiceObjectsForUser(userID).select("id").exec(function (err, soIDs) {
+        getServiceObjectsForUser(userID).select("id").exec(function (err, soIDs) {
             if (err || Object.keys(soIDs).length === 0) {
                 reject(err);
             } else {
                 resolve(soIDs);
             }
         });
+        function getServiceObjectsForUser(userID) {
+            return Gateway.find({ownerID: userID}, function (err, gateways) {
+                if (err) {
+                    reject(err);
+                } else {
+                    gateways.forEach(function (gateway) {
+                        ServiceObject.find({gatewayID: gateway.id});
+                    });
+                }
+            });
+        }
     });
 }
 
@@ -266,7 +319,7 @@ function removeGateway(gatewayID) {
             if (err) {
                 reject(err);
             } else {
-                ServiceObject.getServiceObjectsForGateway(gatewayID).remove(function (err) {
+                ServiceObject.find({gatewayID: gatewayID}).remove(function (err) {
                     if (err) {
                         reject(err);
                     } else {
@@ -287,8 +340,8 @@ function removeGateway(gatewayID) {
 function getAllGatewaysForUser(userID) {
     return new Promise(function (resolve, reject) {
         // TODO Phil 04/10/16: determine which fields will be returned.
-        User.getGatewaysForUser(userID).select("id URL port").exec(function (err, gateways) {
-            if (err || Object.keys(soIDs).length === 0) {
+        Gateway.find({owner:userID}).select("id URL port").exec(function (err, gateways) {
+            if (err || Object.keys(gateways).length === 0) {
                 reject(err);
             } else {
                 resolve(gateways);
