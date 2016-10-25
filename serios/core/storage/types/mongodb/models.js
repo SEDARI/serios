@@ -3,45 +3,17 @@
  */
 var mongoose = require("mongoose");
 
-var User = mongoose.model("User", UserSchema());
+var uuid = require("node-uuid");
+
 var Gateway = mongoose.model("Gateway", GatewaySchema());
 var ServiceObject = mongoose.model("ServiceObject", ServiceObjectSchema());
 var SensorData = mongoose.model("SensorData", SensorDataSchema());
 
 module.exports = {
-    User: User,
     Gateway: Gateway,
     ServiceObject: ServiceObject,
     SensorData: SensorData
 };
-
-/**
- * FIXME Phil 08/10/16: Should be deleted, but the queries are needed. Evaluate how this should work out.
- *
- * Creates a mongoose schema for Users.
- *
- * @returns {mongoose.Schema}
- */
-function UserSchema() {
-    var schema = mongoose.Schema({
-            email: String,
-            apitoken: String
-        },
-        {timestamps: true});
-
-    schema.query.getGatewaysForUser = function (userID, cb) {
-        return Gateway.find({ownerID: userID}, cb);
-    };
-
-    schema.query.getServiceObjectsForUser = function (userID, cb) {
-        return getGatewaysForUser(userID, cb).forEach(function (gateway) {
-            Gateway.getAllSoForGateway(gateway.id);
-        });
-    };
-
-    return schema;
-}
-
 /**
  * Creates a mongoose schema for Gateways.
  *
@@ -49,6 +21,9 @@ function UserSchema() {
  */
 function GatewaySchema() {
     var schema = mongoose.Schema({
+            _id: {
+                type: String, default: uuid.v4
+            },
             ownerID: {
                 type: String,
                 required: true
@@ -65,18 +40,14 @@ function GatewaySchema() {
                 type: Number,
                 min: 1,
                 max: 65535,
-                required: true
+                required: false
             },
             protocol: {
                 type: String,
-                required: true
+                required: false
             }
         },
         {timestamps: true});
-
-    schema.query.getServiceObjectsForGateway = function (gatewayID, cb) {
-        return ServiceObject.find({gatewayID: gatewayID}, cb);
-    };
 
     return schema;
 }
@@ -88,6 +59,9 @@ function GatewaySchema() {
  */
 function ServiceObjectSchema() {
     var schema = mongoose.Schema({
+            _id: {
+                type: String, default: uuid.v4
+            },
             gatewayID: {
                 type: String,
                 required: true
