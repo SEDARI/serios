@@ -4,6 +4,7 @@ var http = require('http');
 var https = require('https');
 var express = require('express');
 var util = require('util');
+var fs = require('fs');
 
 var SERIOS = require("./serios/serios.js");
 
