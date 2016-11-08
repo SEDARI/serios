@@ -151,6 +151,12 @@ module.exports = function(grunt) {
                         //       bootstrap/FA/jquery
                     ]
                 }
+            },
+            uglifyfake: {
+                src : [
+                    "public/red/red.js"
+                ],
+                dest: "public/red/red.min.js"
             }
         },
         uglify: {
@@ -422,9 +428,13 @@ module.exports = function(grunt) {
                        'Runs code style check and unit tests on core code',
                        ['jshint:core','simplemocha:core']);
 
-    grunt.registerTask('build',
+    grunt.registerTask('buildsmall',
                        'Builds static pages',
                        ['clean:build','concat:build','concat:vendor','uglify:build','sass:build','jsonlint:messages','copy:build','attachCopyright']);
+
+    grunt.registerTask('build',
+                       'Builds static pages',
+                       ['clean:build','concat:build','concat:vendor','concat:uglifyfake','sass:build','jsonlint:messages','copy:build']);
 
     grunt.registerTask('dev',
                        'Developer mode: run node-red, watch for source changes and build/restart',
