@@ -1,14 +1,13 @@
 var api = require("./api");
 var core = require("./core");
-
 var app = null;
 
 var SERIOS = {
-    init : function(httpServer, settings) {
+    init : function(httpServer, settings) {        
         core.init(settings, api);
+        app = core.app;
+        
         api.init(httpServer, core);
-
-        app = core.app();
     },
     start : function() {
         return core.start().then(function() { return api.start(); });

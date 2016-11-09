@@ -27,7 +27,8 @@ module.exports = {
     
     storage : storage,
     
-    settings : function() { return settings; },
-    app : function() { return mainApp; },
-    api : function() { return api; }
+    get settings() { return settings; },
+    get app() { return mainApp; },
+    get api() { return api; },
+    get idm() { return idm; }
 };

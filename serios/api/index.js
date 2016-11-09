@@ -1,7 +1,6 @@
 var when = require('when');
 var express = require('express');
 var bodyParser = require('body-parser');
-var passport = require('passport');
 
 // API files for different data types
 var serviceObject = require('./serviceobject');
@@ -20,6 +19,30 @@ var settings;
 var server;
 var core;
 
+function testIdm() {
+    console.log("trigger test");
+
+    var token = "b87aeb17e74c584c50ac6b5e8a88a93831266344";
+    var action = "create";
+    var entity_type = "/Sensor";
+    var entity_id = "323";
+    var data = {
+        "name": "Barack Obam2a",
+        "token": "DC 20500"
+    };
+    
+    var prom = core.idm.core.createEntity(token, entity_id, entity_type, data);
+    prom.then(function(data){
+        console.log('data from api: '+JSON.stringify(data));
+    },function(error) {
+        console.log('error: '+error);
+    }).catch(function(error){
+        console.log('something went wrong in the example: '+error);
+    });
+
+    return true;
+}
+
 function init(_server, _core) {
     server = _server;
     settings = _core.settings;
@@ -30,29 +53,31 @@ function init(_server, _core) {
     app.use(bodyParser.urlencoded({extended: true}));
     app.use(errorHandler);
 
-    app.get("/version", getVersion);
+    app.get("/api/version", getVersion);
 
     // API for Gateways
-    app.post("/gateway/:gatewayid", gateway.add);
-    app.put("/gateway/:gatewayid", gateway.update);
-    app.get("/gateway/:gatewayid", gateway.get);
-    app.delete("/gateway/:gatewayid", gateway.remove);
+    app.post("/api/gateway/:gatewayid", gateway.add);
+    app.put("/api/gateway/:gatewayid", gateway.update);
+    app.get("/api/gateway/:gatewayid", /*testIdm,*/ gateway.get);
+    app.delete("/api/gateway/:gatewayid", gateway.remove);
 
-    app.get("/gateway", gateway.getAllGatewaysForUser);
+    app.get("/api/gateway", gateway.getAllGatewaysForUser);
 
     // API for Service Objects
-    app.post("/", serviceObject.add);
-    app.put("/:soID", serviceObject.update);
-    app.get("/:soID", serviceObject.get);
-    app.delete("/:soID", serviceObject.remove);
+    app.post("/api/", serviceObject.add);
+    app.put("/api/:soID", serviceObject.update);
+    app.get("/api/:soID", serviceObject.get);
+    app.delete("/api/:soID", serviceObject.remove);
 
-    app.get("/SOs", serviceObject.getAllSoForUser);
-    app.get("/:gateway/SOs", serviceObject.getAllSoForGateway);
+    app.get("/api/SOs", serviceObject.getAllSoForUser);
+    app.get("/api/:gateway/SOs", serviceObject.getAllSoForGateway);
 
     // API for Sensor Data
-    app.put("/:soID/streams/:streamid", sensorData.add);
-    app.get("/:soID/streams/:streamid/:options", sensorData.getAllData);
-    app.delete("/:soID/streams/:streamid", sensorData.remove);
+    app.put("/api/:soID/streams/:streamid", sensorData.add);
+    app.get("/api/:soID/streams/:streamid/:options", sensorData.getAllData);
+    app.delete("/api/:soID/streams/:streamid", sensorData.remove);
+
+    core.app.use(app);
 }
 
 function getVersion(req, res) {
