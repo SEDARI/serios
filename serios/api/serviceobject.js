@@ -3,7 +3,7 @@
  *
  * This includes API logic as well as calling the storage.
  */
-var checkPermission = require("./permissionchecker").checkPermission();
+var checkPermission = require("./permissionchecker").checkPermission;
 var storage = require("../core/storage");
 
 module.exports = {
