@@ -10,6 +10,7 @@
     },
     "main": "serios.js",
     "scripts": {
+        "postinstall": "grunt build",
         "start": "node serios.js",
         "test" : "./node_modules/.bin/grunt"
     },
@@ -49,6 +50,7 @@
         "chai": "^3.5.0",
         "chai-as-promised": "6.0.0",
         "chai-http": "^3.0.0",
+        "clone": "2.0.0",
         "grunt": "1.0.1",
         "grunt-chmod": "1.1.1",
         "grunt-cli": "1.2.0",
@@ -70,6 +72,6 @@
         "supertest": "1.2.0"
     },
     "engines": {
-        "node": ">=0.10 <6.0.0"
+        "node": ">=0.10 <7.0.0"
     }
 }

@@ -42,9 +42,9 @@ module.exports = function(grunt) {
                 reporter: 'spec'
             },
             core: {
-                src: ['test/mongodb-test.js']
-                // this should actually stand here.
-                // src: ['test/**/*-test.js']
+                src: ['test/mongodb-test.js', "test/**/*_spec.js"]
+                // TODO Phil 15/11/16: The above should be replaced by the below, but the over tests are not working yet
+                // src: ['test/**/*-test.js', 'test/**/*_spec.js']
 
             }
         },
