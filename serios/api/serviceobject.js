@@ -18,33 +18,55 @@ module.exports = {
 };
 
 function add(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var so = req.body;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(validateSyntax(req.body)).catch(function () {
+    }).then(function (userID) {
+        so.ownerID = userID;
+        return validateSyntax(so);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
-    }).then(addSO(req.body)).catch(function () {
+    }).then(function () {
+        return addSO(so);
+    }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not save Service Object."});
-    }).then(function (soID) {
-        res.status(200).json({soID: soID, msg: "OK. Service Object was added."});
+    }).then(function (res) {
+        res.status(200).json({soID: res.soID, gatewayID: res.gatewayID, msg: "OK. Service Object was added."});
     });
 }
 
 function update(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var soID = req.params.soID;
+    var so = req.body;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(validateSyntax(req.body)).catch(function () {
+    }).then(function (userID) {
+        so.ownerID = userID;
+        return validateSyntax(so);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
-    }).then(updateSO(req.params.soID, req.body)).catch(function () {
-        res.status(507).json({msg: "Insufficient Storage. Could not save Service Object."});
     }).then(function () {
-        res.status(200).json({msg: "OK. Service Object was modified."});
+        return updateSO(soID, so);
+    }).catch(function () {
+        res.status(507).json({msg: "Insufficient Storage. Could not save Service Object."});
+    }).then(function (res) {
+        res.status(200).json({soID: res.soID, gatewayID: res.gatewayID, msg: "OK. Service Object was modified."});
     });
 }
 
 function get(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var soID = req.params.soID;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(getSO(req.params.gatewayID)).catch(function () {
+    }).then(function () {
+        return getSO(soID);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Service Object."});
     }).then(function (so) {
         res.status(200).json(so);
@@ -52,9 +74,14 @@ function get(req, res) {
 }
 
 function remove(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var soID = req.params.soID;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(removeSO(req.params.soID)).catch(function () {
+    }).then(function () {
+        return removeSO(soID);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Service Object."});
     }).then(function () {
         res.status(200).json({msg: "OK. Service Object was removed."});
@@ -62,25 +89,33 @@ function remove(req, res) {
 }
 
 function getAllSoForGateway(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var gatewayID = req.params.gatewayID;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(allSoForGateway(req.params.gatewayID)).catch(function () {
-        // TODO Phil 13/09/16: handle error
+    }).then(function () {
+        return allSoForGateway(gatewayID);
+    }).catch(function () {
+        res.status(400).json({msg: "Bad Request. Could not find Service Objects for given parameters."});
     }).then(function (sos) {
-        res.status(200).json({sos: sos});
+        res.status(200).json(sos);
     });
 }
 
 function getAllSoForUser(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(allSoForUser(req.get('Authorization'))).catch(function () {
-        // TODO Phil 13/09/16: handle error
+    }).then(function (userID) {
+        return allSoForUser(userID);
+    }).catch(function () {
+        res.status(400).json({msg: "Bad Request. Could not find Service Objects for given parameters."});
     }).then(function (sos) {
-        res.status(200).json({sos: sos});
+        res.status(200).json(sos);
     });
 }
-
 
 /**
  * Calls the storage to validate the syntax of a given service object.
