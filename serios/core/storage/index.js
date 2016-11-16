@@ -13,59 +13,59 @@ module.exports = {
 
     // service objects
     validateServiceObjectSyntax: function (so) {
-        storage.validateServiceObjectSyntax(so);
+        return storage.validateServiceObjectSyntax(so);
     },
     addServiceObject: function (so) {
-        storage.addServiceObject(so);
+        return storage.addServiceObject(so);
     },
     updateServiceObject: function (soID, so) {
-        storage.updateServiceObject(soID, so);
+        return storage.updateServiceObject(soID, so);
     },
     getServiceObject : function (soID) {
-        storage.getServiceObject(soID);
+        return storage.getServiceObject(soID);
     },
     removeServiceObject: function (soID) {
-        storage.removeServiceObject(soID);
+        return storage.removeServiceObject(soID);
     },
     getAllSoForUser: function (soID) {
-        storage.getAllSoForUser(soID);
+        return storage.getAllSoForUser(soID);
     },
     getAllSoForGateway: function (gatewayID) {
-        storage.getAllSoForGateway(gatewayID);
+        return storage.getAllSoForGateway(gatewayID);
     },
 
     // gateways
     validateGatewaySyntax : function (gateway) {
-        storage.validateGatewaySyntax(gateway);
+        return storage.validateGatewaySyntax(gateway);
     },
     addGateway: function (gateway) {
-        storage.addGateway(gateway);
+        return storage.addGateway(gateway);
     },
     updateGateway: function (gatewayID, gateway) {
-        storage.updateGateway(gatewayID, gateway);
+        return storage.updateGateway(gatewayID, gateway);
     },
     getGateway: function (gatewayID, gateway) {
-        storage.getGateway(gatewayID, gateway);
+        return storage.getGateway(gatewayID, gateway);
     },
     removeGateway: function (gatewayID) {
-        storage.removeGateway(gatewayID);
+        return storage.removeGateway(gatewayID);
     },
     getAllGatewaysForUser: function (userID) {
-        storage.getAllGatewaysForUser(userID);
+        return storage.getAllGatewaysForUser(userID);
     },
 
     // sensor data
     validateSensorDataSyntax : function (data) {
-        storage.validateSensorDataSyntax(data);
+        return storage.validateSensorDataSyntax(data);
     },
     addSensorData: function (soID, streamID, data) {
-        storage.addSensorData(soID, streamID, data);
+        return storage.addSensorData(soID, streamID, data);
     },
     removeSensorData : function (soID, streamID) {
-        storage.removeSensorData(soID, streamID);
+        return storage.removeSensorData(soID, streamID);
     },
     getSensorDataForStream : function (soID, streamID) {
-        storage.getSensorDataForStream(soID, streamID);
+        return storage.getSensorDataForStream(soID, streamID);
     }
 };
 
