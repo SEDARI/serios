@@ -4,7 +4,7 @@
  * This includes API logic as well as calling the storage.
  */
 
-var permissionChecker = require("./permissionchecker");
+var checkPermission = require("./permissionchecker").checkPermission;
 var storage = require("../core/storage");
 
 module.exports = {
@@ -14,11 +14,20 @@ module.exports = {
 };
 
 function add(req, res) {
-    permissionChecker.checkPermission().catch(function () {
+    var authorization = req.headers.authorization;
+    var soID = req.params.soID;
+    var streamID = req.params.streamID;
+    var sensorData = req.body;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(validateSyntax(req.body)).catch(function () {
+    }).then(function () {
+        return validateSyntax(sensorData);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data."});
-    }).then(addSensorData(req.params.soID, req.params.streamID, req.body)).catch(function () {
+    }).then(function () {
+        return addSensorData(soID, streamID, sensorData);
+    }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not save Sensor Data."});
     }).then(function () {
         res.status(201).json({msg: "Data stored, accepted for dispatching."});
@@ -26,9 +35,13 @@ function add(req, res) {
 }
 
 function remove(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(removeSensorData(req.params.soID, req.params.streamID)).catch(function () {
+    }).then(function () {
+        return removeSensorData(req.params.soID, req.params.streamID);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
     }).then(function () {
         res.status(204);
@@ -36,9 +49,13 @@ function remove(req, res) {
 }
 
 function getSensorData(req, res) {
-    permissionChecker.checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(getAllSensorData(req.params.soID, req.params.streamID, req.params.options)).catch(function () {
+    }).then(function () {
+        return getAllSensorData(req.params.soID, req.params.streamID, req.params.options);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
     }).then(function (data) {
         res.status(200).json({data: data});
