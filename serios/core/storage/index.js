@@ -27,8 +27,8 @@ module.exports = {
     removeServiceObject: function (soID) {
         return storage.removeServiceObject(soID);
     },
-    getAllSoForUser: function (soID) {
-        return storage.getAllSoForUser(soID);
+    getAllSoForUser: function (userID) {
+        return storage.getAllSoForUser(userID);
     },
     getAllSoForGateway: function (gatewayID) {
         return storage.getAllSoForGateway(gatewayID);
