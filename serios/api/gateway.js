@@ -16,25 +16,41 @@ module.exports = {
     getAllGatewaysForUser: getAllGatewaysForUser
 };
 
-
 function add(req, res) {
-    checkPermission(req).catch(function () {
+    var gateway = req.body;
+    var authorization = req.headers.authorization;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(validateSyntax(req.body)).catch(function () {
+    }).then(function (userID) {
+        gateway.ownerID = userID;
+        return validateSyntax(gateway);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
-    }).then(addGateway(req.body)).catch(function () {
+    }).then(function () {
+        return addGateway(gateway);
+    }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not save Gateway."});
     }).then(function (gatewayID) {
-        res.status(200).json({gatewayID: gatewayID}, {msg: "OK. Gateway was added."});
+        res.status(200).json({gatewayID: gatewayID, msg: "OK. Gateway was added."});
     });
 }
 
 function update(req, res) {
-    checkPermission(req).catch(function () {
+    var gateway = req.body;
+    var authorization = req.headers.authorization;
+    var gatewayID = req.params.gatewayID;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(validateSyntax(req)).catch(function () {
+    }).then(function (userID) {
+        gateway.ownerID = userID;
+        return validateSyntax(gateway);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
-    }).then(updateGateway(req.params.gatewayID, req.body)).catch(function () {
+    }).then(function () {
+        return updateGateway(gatewayID, gateway);
+    }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not update Gateway."});
     }).then(function () {
         res.status(200).json({msg: "OK. Gateway was modified."});
@@ -42,9 +58,14 @@ function update(req, res) {
 }
 
 function get(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var gatewayID = req.params.gatewayID;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(getGateway(req.params.gatewayID)).catch(function () {
+    }).then(function () {
+        return getGateway(gatewayID);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Gateway."});
     }).then(function (gateway) {
         res.status(200).json(gateway);
@@ -52,9 +73,14 @@ function get(req, res) {
 }
 
 function remove(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+    var gatewayID = req.params.gatewayID;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(removeGateway(req.params.gatewayID)).catch(function () {
+    }).then(function () {
+        return removeGateway(gatewayID);
+    }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Gateway."});
     }).then(function () {
         res.status(200).json({msg: "OK. Gateway was removed."});
@@ -62,10 +88,16 @@ function remove(req, res) {
 }
 
 function getAllGatewaysForUser(req, res) {
-    checkPermission(req).catch(function () {
+    var authorization = req.headers.authorization;
+
+    checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(allGatewaysForUser()).catch(function () {
-        // TODO Phil 12/09/16: handle error
+    }).then(function (userID) {
+        return allGatewaysForUser(userID);
+    }).catch(function () {
+        res.status(400).json({msg: "Bad Request. Could not find Gateways."});
+    }).then(function (gateways) {
+        res.status(200).json(gateways);
     });
 }
 
@@ -127,5 +159,5 @@ var removeGateway = function (gatewayID) {
  * @returns {*}
  */
 var allGatewaysForUser = function (userID) {
-    return storage.getAllSoForUser(userID);
+    return storage.getAllGatewaysForUser(userID);
 };
