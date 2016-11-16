@@ -61,9 +61,9 @@ function init(_server, _core) {
 
     // API for Gateways
     app.post("/api/gateway", gateway.add);
-    app.put("/api/gateway/:gatewayid", gateway.update);
-    app.get("/api/gateway/:gatewayid", gateway.get);
-    app.delete("/api/gateway/:gatewayid", gateway.remove);
+    app.put("/api/gateway/:gatewayID", gateway.update);
+    app.get("/api/gateway/:gatewayID", gateway.get);
+    app.delete("/api/gateway/:gatewayID", gateway.remove);
 
     app.get("/api/gateway", gateway.getAllGatewaysForUser);
 
@@ -77,9 +77,9 @@ function init(_server, _core) {
     app.get("/api/:gateway/sos", serviceObject.getAllSoForGateway);
 
     // API for Sensor Data
-    app.put("/api/:soID/streams/:streamid", sensorData.add);
-    app.get("/api/:soID/streams/:streamid/:options", sensorData.getAllData);
-    app.delete("/api/:soID/streams/:streamid", sensorData.remove);
+    app.put("/api/:soID/streams/:streamID", sensorData.add);
+    app.get("/api/:soID/streams/:streamID/:options", sensorData.getAllData);
+    app.delete("/api/:soID/streams/:streamID", sensorData.remove);
 
     core.app.use(app);
 }
