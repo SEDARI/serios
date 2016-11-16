@@ -19,10 +19,14 @@ var settings;
 var server;
 var core;
 
-function testIdm() {
-    console.log("trigger test");
+function testIdm(req, res) {
 
-    var token = "b87aeb17e74c584c50ac6b5e8a88a93831266344";
+    if(req.user === undefined || req.user === undefined) {
+        res.status(403).json({ msg: "User not authenticated or cookies disabled." });
+        return Promise.reject();
+    }
+    
+    var token = req.user.token;
     var action = "create";
     var entity_type = "/Sensor";
     var entity_id = "323";
@@ -39,8 +43,8 @@ function testIdm() {
     }).catch(function(error){
         console.log('something went wrong in the example: '+error);
     });
-
-    return true;
+    
+    return prom;
 }
 
 function init(_server, _core) {
@@ -58,7 +62,7 @@ function init(_server, _core) {
     // API for Gateways
     app.post("/api/gateway/:gatewayid", gateway.add);
     app.put("/api/gateway/:gatewayid", gateway.update);
-    app.get("/api/gateway/:gatewayid", /*testIdm,*/ gateway.get);
+    app.get("/api/gateway/:gatewayid", gateway.get);
     app.delete("/api/gateway/:gatewayid", gateway.remove);
 
     app.get("/api/gateway", gateway.getAllGatewaysForUser);

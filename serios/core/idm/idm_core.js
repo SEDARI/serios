@@ -10,4 +10,4 @@ module.exports = {
     },
 
     get core() { return idmcore; }
-}
+};
