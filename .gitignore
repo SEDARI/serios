@@ -47,3 +47,4 @@ out
 gen
 
 public/
+*.sqlite3

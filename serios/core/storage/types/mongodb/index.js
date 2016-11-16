@@ -2,8 +2,8 @@
  This file holds all the storage logic using a MongoDB database with mongoose.
  */
 var mongoose = require("mongoose");
+mongoose.Promise = global.Promise;
 
-var User = require("../mongodb/models").User;
 var Gateway = require("../mongodb/models").Gateway;
 var ServiceObject = require("../mongodb/models").ServiceObject;
 var SensorData = require("../mongodb/models").SensorData;
@@ -43,7 +43,7 @@ module.exports = {
  * @param settings the settings for the mongodb database.
  */
 function init(settings) {
-    mongoose.createConnection(settings.location);
+    mongoose.connect(settings.location);
 }
 
 /**
@@ -53,71 +53,148 @@ function init(settings) {
  * @returns {Promise} whether the given JSON has correct Service Object syntax or not.
  */
 function validateServiceObjectSyntax(so) {
-    // TODO Phil 08/10/16: extend validation
-    return new Promise(function (resolve, reject) {
-        var val = new ServiceObject(so);
-        val.validateBeforeSave(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
+    return new ServiceObject(so).validate();
 }
 
 /**
  * Adds a given Service Object to the database.
  *
+ * Also adds, if specified, a Gateway to the database. If no information is provided,
+ * no gateway information will be saved.
+ *
  * @param newSo the Service Object that is added.
  * @returns {Promise} whether adding was successful or not.
  */
 function addServiceObject(newSo) {
-    return new Promise(function (resolve, reject) {
-        var so = new ServiceObject(newSo);
-        so.save(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(so.id);
+    var gateway = newSo.gateway;
+    if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
+        return evaluateGatewayAndAddServiceObject(gateway);
+    } else {
+        return ServiceObject.saveWithoutGateway(new ServiceObject(newSo));
+    }
+
+    function evaluateGatewayAndAddServiceObject(gateway) {
+        var options;
+        if (gateway.gatewayID) {
+            options = {
+                _id: gateway.gatewayID
+            };
+            if (gateway.URL) {
+                options.URL = gateway.URL;
             }
-        });
-    });
+            if (gateway.name) {
+                options.name = gateway.name;
+            }
+            return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
+                if (foundGateway) {
+                    newSo.gatewayID = foundGateway._id;
+                    delete newSo.gateway;
+                    return ServiceObject.saveSoGetSoId(new ServiceObject(newSo));
+                } else {
+                    return Promise.reject(new Error("Error! Could not find Gateway!"));
+                }
+            });
+        } else {
+            options = {
+                name: gateway.name,
+                URL: gateway.URL
+            };
+            return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
+                if (foundGateway) {
+                    newSo.gatewayID = foundGateway._id;
+                    return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(newSo));
+                } else {
+                    // no existing gateway found? create a new one with the given information
+                    gateway.ownerID = newSo.ownerID;
+                    return addGateway(gateway).then(function (id) {
+                        newSo.gatewayID = id;
+                        return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(newSo));
+                    });
+                }
+            });
+        }
+    }
 }
 
 /**
  * Update a Service Object with given values in the database.
  *
  * @param soID the identifier of the service object that is updated.
- * @param so the new values for the service object.
+ * @param newSo the new values for the service object.
  * @returns {Promise} whether updating was successful or not.
  */
-function updateServiceObject(soID, so) {
-    return new Promise(function (resolve, reject) {
-        ServiceObject.findByIdAndUpdate(soID, so, function (err) {
-            if (err) {
-                reject(err);
+function updateServiceObject(soID, newSo) {
+    var updateOptions = {
+        overwrite: true,
+        runValidators: true,
+        new: true
+    };
+
+    return ServiceObject.findById(soID).exec().then(function (oldSo) {
+        var gateway = newSo.gateway;
+        var options;
+        if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
+            if (gateway.gatewayID && oldSo.gatewayID == gateway.gatewayID) {
+                return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+            } else if (gateway.gatewayID) {
+                options = {
+                    _id: gateway.gatewayID
+                };
+                if (gateway.URL) {
+                    options.URL = gateway.URL;
+                }
+                if (gateway.name) {
+                    options.name = gateway.name;
+                }
+                return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
+                    if (foundGateway) {
+                        newSo.gatewayID = foundGateway._id;
+                        delete newSo.gateway;
+                        return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+                    } else {
+                        return Promise.reject(new Error("Error! Could not find Gateway!"));
+                    }
+                });
             } else {
-                resolve();
+                options = {
+                    name: gateway.name,
+                    URL: gateway.URL
+                };
+                return Gateway.findOne(options).exec().then(function (foundGateway) {
+                    if (foundGateway) {
+                        newSo.gatewayID = foundGateway._id;
+                        return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions.lean()).exec();
+                    } else {
+                        // no existing gateway found? create a new one with the given information
+                        gateway.ownerID = newSo.ownerID;
+                        return addGateway(gateway).then(function (id) {
+                            newSo.gatewayID = id;
+                            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+                        });
+                    }
+                });
             }
-        });
+        } else {
+            delete newSo.gatewayID;
+            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+        }
     });
+
 }
 
 /**
  * Get the description of a Service Object from the database.
  *
- * @param soID the identifier of the service object that requested.
+ * @param soID the identifier of the service object that is requested.
  * @returns {Promise} whether the Service Object exits or not.
  */
 function getServiceObject(soID) {
-    return new Promise(function (resolve, reject) {
-        // TODO Phil 04/10/16: determine which fields will be returned.
-        ServiceObject.findById(soID).select("id gatewayID name description streams").exec(function (err, so) {
-            if (err) {
-                reject(err);
+    return ServiceObject.findById(soID).select("id gatewayID name description streams").exec().then(function (mod) {
+        return new Promise(function (resolve, reject) {
+            if (!mod) {
+                reject();
             } else {
-                resolve(so);
+                resolve(mod);
             }
         });
     });
@@ -131,12 +208,12 @@ function getServiceObject(soID) {
  */
 function removeServiceObject(soID) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 04/10/16: remove appropriate sensor data as well?
-        ServiceObject.findByIdAndRemove(soID, function (err) {
-            if (err)
+        ServiceObject.findByIdAndRemove(soID, function (err, foundSO) {
+            if (err || !foundSO) {
                 reject(err);
-            else
+            } else {
                 resolve();
+            }
         });
     });
 }
@@ -149,10 +226,13 @@ function removeServiceObject(soID) {
  */
 function getAllSoForGateway(gatewayID) {
     return new Promise(function (resolve, reject) {
-        Gateway.getServiceObjectsForGateway(gatewayID).select("id").exec(function (err, soIDs) {
-            if (err || Object.keys(soIDs).length === 0) {
+        ServiceObject.find({gatewayID: gatewayID}).lean().exec(function (err, sos) {
+            if (err || sos.length === 0) {
                 reject(err);
             } else {
+                var soIDs = sos.map(function (item) {
+                    return item._id;
+                });
                 resolve(soIDs);
             }
         });
@@ -167,10 +247,13 @@ function getAllSoForGateway(gatewayID) {
  */
 function getAllSoForUser(userID) {
     return new Promise(function (resolve, reject) {
-        User.getServiceObjectsForUser(userID).select("id").exec(function (err, soIDs) {
-            if (err || Object.keys(soIDs).length === 0) {
+        ServiceObject.find({ownerID: userID}).lean().exec(function (err, sos) {
+            if (err || sos.length === 0) {
                 reject(err);
             } else {
+                var soIDs = sos.map(function (item) {
+                    return item._id;
+                });
                 resolve(soIDs);
             }
         });
@@ -184,17 +267,7 @@ function getAllSoForUser(userID) {
  * @returns {Promise} whether the given JSON has correct Gateway syntax or not.
  */
 function validateGatewaySyntax(gateway) {
-    // TODO Phil 08/10/16: extend validation
-    return new Promise(function (resolve, reject) {
-        var val = new Gateway(gateway);
-        val.validate(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
+    return new Gateway(gateway).validate();
 }
 
 /**
@@ -205,12 +278,11 @@ function validateGatewaySyntax(gateway) {
  */
 function addGateway(newGateway) {
     return new Promise(function (resolve, reject) {
-        var gw = new Gateway(newGateway);
-        gw.save(function (err) {
+        new Gateway(newGateway).save(function (err, gateway) {
             if (err) {
                 reject(err);
             } else {
-                resolve(gw.id);
+                resolve(gateway._id);
             }
         });
     });
@@ -225,11 +297,13 @@ function addGateway(newGateway) {
  */
 function updateGateway(gatewayID, gateway) {
     return new Promise(function (resolve, reject) {
-        Gateway.findByIdAndUpdate(gatewayID, gateway, function (err) {
-            if (err) {
+        Gateway.findByIdAndUpdate(gatewayID, gateway, {runValidators: true, new: true}, function (err, updatedGateway) {
+            if (err || !updatedGateway) {
                 reject(err);
+            } else if (!updatedGateway) {
+                reject(new Error("Could not find gateway."));
             } else {
-                resolve();
+                resolve(updatedGateway);
             }
         });
     });
@@ -242,39 +316,24 @@ function updateGateway(gatewayID, gateway) {
  * @returns {Promise} whether the Gateway exists or not.
  */
 function getGateway(gatewayID) {
-    return new Promise(function (resolve, reject) {
-        // TODO Phil 04/10/16: determine which fields will be returned.
-        Gateway.findById(gatewayID).select("id URL port").exec(function (err, gw) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(gw);
-            }
-        });
-    });
+    return Gateway.findById(gatewayID).select("id gatewayID URL port").lean().exec();
 }
 
 /**
- * Removes a Gateway and its appropriate Service Objects from the database.
+ * Removes a Gateway.
+ * The appropriate service objects and its sensor data will
+ * not be removed but the Service Objects will be updated.
  *
  * @param gatewayID the identifier of the gateway that is deleted.
  * @returns {Promise} whether removing was successful or not.
  */
 function removeGateway(gatewayID) {
-    return new Promise(function (resolve, reject) {
-        Gateway.findByIdAndRemove(gatewayID, function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                ServiceObject.getServiceObjectsForGateway(gatewayID).remove(function (err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            }
-        });
+    return Gateway.findByIdAndRemove(gatewayID).lean().exec().then(function (removedGateway) {
+        if (!removedGateway) {
+            return Promise.reject();
+        } else {
+            return ServiceObject.update({gatewayID: gatewayID}, {gatewayID: undefined}, {multi: true}).exec();
+        }
     });
 }
 
@@ -286,9 +345,8 @@ function removeGateway(gatewayID) {
  */
 function getAllGatewaysForUser(userID) {
     return new Promise(function (resolve, reject) {
-        // TODO Phil 04/10/16: determine which fields will be returned.
-        User.getGatewaysForUser(userID).select("id URL port").exec(function (err, gateways) {
-            if (err || Object.keys(soIDs).length === 0) {
+        Gateway.find({ownerID: userID}).select("id URL port").exec(function (err, gateways) {
+            if (err || gateways.length === 0) {
                 reject(err);
             } else {
                 resolve(gateways);
@@ -298,23 +356,32 @@ function getAllGatewaysForUser(userID) {
 }
 
 /**
+ * Validates if the given soID and streamID exist in the database.
+ *
+ * @param soID the given service object identifier.
+ * @param streamID the given stream identifier.
+ * @returns {Promise} whether the given parameters exist in the database or not.
+ */
+function validateSoIdAndStreamId(soID, streamID) {
+    return SensorData.validateSoID(soID)
+        .then(function () {
+            return SensorData.validateStreamID(soID, streamID);
+        });
+}
+
+/**
  * Validates if a given JSON has the correct SensorData syntax.
  *
+ * @param soID the service object of the stream.
+ * @param streamID the given stream.
  * @param data the given JSON
  * @returns {Promise} whether the given JSON has correct SensorData syntax or not.
  */
-function validateSensorDataSyntax(data) {
-    // TODO Phil 08/10/16: extend validation
-
-    return new Promise(function (resolve, reject) {
-        var val = new SensorData(data);
-        val.validate(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+function validateSensorDataSyntax(soID, streamID, data) {
+    data.soID = soID;
+    data.streamID = streamID;
+    return validateSoIdAndStreamId(soID, streamID).then(function () {
+        return new SensorData(data).validate();
     });
 }
 
@@ -327,18 +394,10 @@ function validateSensorDataSyntax(data) {
  * @returns {Promise} whether adding was successful or not.
  */
 function addSensorData(soID, streamID, data) {
-    return new Promise(function (resolve, reject) {
-        data.soID = soID;
-        data.streamID = streamID;
-        var sensorData = new SensorData(data);
-
-        sensorData.save(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+    data.soID = soID;
+    data.streamID = streamID;
+    return validateSoIdAndStreamId(soID, streamID).then(function () {
+        return new SensorData(data).save();
     });
 }
 
@@ -350,14 +409,16 @@ function addSensorData(soID, streamID, data) {
  * @returns {Promise} whether removing was successful or not.
  */
 function removeSensorData(soID, streamID) {
-    return new Promise(function (resolve, reject) {
-        SensorData.find({soID: soID, streamID: streamID}).remove(function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+    return SensorData.find({soID: soID, streamID: streamID}).exec().then(function (foundSDs) {
+        if (!foundSDs || foundSDs.length === 0) {
+            return Promise.reject(new Error("Could not find sensor data for given oarameters"));
+        } else {
+            var proms = [];
+            foundSDs.forEach(function (data) {
+                proms.push(data.remove());
+            });
+            return Promise.all(proms);
+        }
     });
 }
 
@@ -369,13 +430,12 @@ function removeSensorData(soID, streamID) {
  * @returns {Promise} Promise with an array of Sensor Data.
  */
 function getAllSensorDataForStream(soID, streamID) {
-    return new Promise(function (resolve, reject) {
-        SensorData.find({
-            soID: soID,
-            streamID: streamID
-        }).select("soID streamID channels").exec(function (err, data) {
-            if (err) {
-                reject(err);
+    return validateSoIdAndStreamId(soID, streamID).then(function () {
+        return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
+    }).then(function (data) {
+        return new Promise(function (resolve, reject) {
+            if (data.length === 0) {
+                reject();
             } else {
                 resolve(data);
             }

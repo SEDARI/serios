@@ -3,45 +3,38 @@
  */
 var mongoose = require("mongoose");
 
-var User = mongoose.model("User", UserSchema());
+/**
+ * Used to generate uuIDs.
+ */
+var uuid = require("node-uuid");
+
+/**
+ * The gateway description is further explained in the
+ * {@link https://github.com/sedari/serios-docs documentation on Github}.
+ *
+ * @type {_mongoose.Model}
+ */
 var Gateway = mongoose.model("Gateway", GatewaySchema());
+/**
+ * The Service Object description is further explained in the
+ * {@link https://github.com/sedari/serios-docs documentation on Github}.
+ *
+ * @type {_mongoose.Model}
+ */
 var ServiceObject = mongoose.model("ServiceObject", ServiceObjectSchema());
+/**
+ * The SensorData description is further explained in the
+ * {@link https://github.com/sedari/serios-docs documentation on Github}.
+ *
+ * @type {_mongoose.Model}
+ */
 var SensorData = mongoose.model("SensorData", SensorDataSchema());
 
 module.exports = {
-    User: User,
     Gateway: Gateway,
     ServiceObject: ServiceObject,
     SensorData: SensorData
 };
-
-/**
- * FIXME Phil 08/10/16: Should be deleted, but the queries are needed. Evaluate how this should work out.
- *
- * Creates a mongoose schema for Users.
- *
- * @returns {mongoose.Schema}
- */
-function UserSchema() {
-    var schema = mongoose.Schema({
-            email: String,
-            apitoken: String
-        },
-        {timestamps: true});
-
-    schema.query.getGatewaysForUser = function (userID, cb) {
-        return Gateway.find({ownerID: userID}, cb);
-    };
-
-    schema.query.getServiceObjectsForUser = function (userID, cb) {
-        return getGatewaysForUser(userID, cb).forEach(function (gateway) {
-            Gateway.getAllSoForGateway(gateway.id);
-        });
-    };
-
-    return schema;
-}
-
 /**
  * Creates a mongoose schema for Gateways.
  *
@@ -49,6 +42,10 @@ function UserSchema() {
  */
 function GatewaySchema() {
     var schema = mongoose.Schema({
+            _id: {
+                type: String,
+                default: uuid.v4
+            },
             ownerID: {
                 type: String,
                 required: true
@@ -65,18 +62,15 @@ function GatewaySchema() {
                 type: Number,
                 min: 1,
                 max: 65535,
-                required: true
+                required: false
             },
             protocol: {
                 type: String,
-                required: true
+                required: false
             }
         },
-        {timestamps: true});
-
-    schema.query.getServiceObjectsForGateway = function (gatewayID, cb) {
-        return ServiceObject.find({gatewayID: gatewayID}, cb);
-    };
+        {timestamps: true},
+        {strict: true});
 
     return schema;
 }
@@ -88,36 +82,113 @@ function GatewaySchema() {
  */
 function ServiceObjectSchema() {
     var schema = mongoose.Schema({
+            _id: {
+                type: String,
+                default: uuid.v4
+            },
+            ownerID: {
+                type: String,
+                required: [true, 'Service Object ownerID required']
+            },
             gatewayID: {
                 type: String,
-                required: true
+                required: false
             },
             name: {
                 type: String,
-                required: true
+                required: [true, 'Service Object name required']
             },
             description: {
                 type: String,
-                required: true
+                required: [true, 'Service Object description required']
             },
             streams: {
                 type: [SensorStreamSchema()],
-                required: true
+                validate: streamsValidator,
+                required: [true, 'Service Object streams required']
             },
             policy: {
                 type: [],
                 required: false
             }
         },
-        {timestamps: true});
+        {timestamps: true},
+        {strict: true});
+
+    /**
+     * Validates if a given stream property is not empty.
+     *
+     * @param streams the given stream property.
+     * @returns {Boolean} if the stream property is empty.
+     */
+    function streamsValidator(streams) {
+        return streams && streams.length;
+    }
+
+    /**
+     * Saves a given service object in the database and, if successful, returns
+     * an object, that contains the generated service object ID (soID) as a property.
+     *
+     * @param so the service object that is added.
+     * @returns {Promise} whether saving was successful or not.
+     */
+    schema.statics.saveSoGetSoId = function (so) {
+        return new Promise(function (resolve, reject) {
+            so.save(function (err, savedSo) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({soID: savedSo.id});
+                }
+            });
+        });
+    };
+
+    /**
+     * Saves a given service object in the database and, if successful, returns
+     * an object, that contains both the generated service object ID (soID) as a
+     * property and the generated gateway ID (gatewayID).
+     *
+     * @param so the service object that is added and a gateway is generated for.
+     * @returns {Promise} whether saving was successful or not.
+     */
+    schema.statics.saveSoGetSoIdAndGatewayId = function (so) {
+        return new Promise(function (resolve, reject) {
+            so.save(function (err, savedSo) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({soID: savedSo._id, gatewayID: savedSo.gatewayID});
+                }
+            });
+        });
+    };
+
+    /**
+     * Saves a given service object that has no gateway information
+     * in the database and, if successful, returns an object, that
+     * contains both the generated service object ID (soID) as a
+     * property and the generated gateway ID (gatewayID).
+     *
+     * @param so the service object that is added and a gateway is generated for.
+     * @returns {Promise} whether saving was successful or not.
+     */
+    schema.statics.saveWithoutGateway = function (so) {
+        return new Promise(function (resolve, reject) {
+            delete so.gatewayID;
+            so.save(function (err, savedSo) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({soID: savedSo.id});
+                }
+            });
+        });
+    };
 
     function SensorStreamSchema() {
         var schema = mongoose.Schema({
-            streamID: {
-                type: String,
-                required: true
-            },
-            sensorName: {
+            name: {
                 type: String,
                 required: true
             },
@@ -127,9 +198,20 @@ function ServiceObjectSchema() {
             },
             channels: {
                 type: [SensorChannelSchema()],
+                validate: sensorChannelValidator,
                 required: true
             }
         });
+
+        /**
+         * Validates if a given channels property is not empty.
+         *
+         * @param sensorChannel the given channels property.
+         * @returns {Boolean} if the channels property is empty.
+         */
+        function sensorChannelValidator(sensorChannel) {
+            return sensorChannel && sensorChannel.length;
+        }
 
         function SensorChannelSchema() {
             var schema = mongoose.Schema({
@@ -137,8 +219,9 @@ function ServiceObjectSchema() {
                     type: String,
                     required: true
                 },
-                dataType: {
+                type: {
                     type: String,
+                    lowercase: true,
                     enum: ['number', 'string', 'boolean', 'geo_location'],
                     required: true
                 },
@@ -176,7 +259,52 @@ function SensorDataSchema() {
                 required: true
             }
         },
-        {timestamps: true});
+        {timestamps: true},
+        {strict: true});
+
+    /**
+     * Validates if a service object for the given identifier (soID) exists.
+     *
+     * @param soID the given service object identifier.
+     * @returns {Promise} whether the given service object exists or not.
+     */
+    schema.statics.validateSoID = function (soID) {
+        return ServiceObject.findById(soID).lean().exec().then(function (so) {
+            return new Promise(function (resolve, reject) {
+                if (!so) {
+                    reject(new Error("Could not find Service Object"));
+                } else {
+                    resolve();
+                }
+            });
+        });
+    };
+
+    /**
+     * Validates if a given stream (streamID) exists for a given service object (soID).
+     *
+     * @param soID the given service object identifier.
+     * @param streamID the given stream identifier. This is only a valid key together with the soID.
+     * @returns {Promise} whether the given stream exists for a service object or not.
+     */
+    schema.statics.validateStreamID = function(soID, streamID) {
+        return ServiceObject.findById(soID).lean().exec().then(function (so) {
+            return new Promise(function (resolve, reject) {
+                if (!so) {
+                    return reject(new Error("Could not find Service Object"));
+                } else {
+                    var array = so.streams.map(function (stream) {
+                        return stream.name;
+                    });
+                    if (array.includes(streamID)) {
+                        return resolve();
+                    } else {
+                        return reject(new Error("Could not find Stream in Service Object"));
+                    }
+                }
+            });
+        });
+    };
 
     function ChannelDataSchema() {
         var schema = mongoose.Schema({
