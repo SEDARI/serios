@@ -339,11 +339,14 @@ function removeGateway(gatewayID) {
  */
 function getAllGatewaysForUser(userID) {
     return new Promise(function (resolve, reject) {
-        Gateway.find({ownerID: userID}).select("id URL port").exec(function (err, gateways) {
+        Gateway.find({ownerID: userID}).select("id").exec(function (err, gateways) {
             if (err || gateways.length === 0) {
                 reject(err);
             } else {
-                resolve(gateways);
+                var gws = gateways.map(function (item) {
+                    return item._id;
+                });
+                resolve(gws);
             }
         });
     });
