@@ -60,7 +60,7 @@ function init(_server, _core) {
     app.get("/api/version", getVersion);
 
     // API for Gateways
-    app.post("/api/gateway/:gatewayid", gateway.add);
+    app.post("/api/gateway", gateway.add);
     app.put("/api/gateway/:gatewayid", gateway.update);
     app.get("/api/gateway/:gatewayid", gateway.get);
     app.delete("/api/gateway/:gatewayid", gateway.remove);
@@ -73,8 +73,8 @@ function init(_server, _core) {
     app.get("/api/:soID", serviceObject.get);
     app.delete("/api/:soID", serviceObject.remove);
 
-    app.get("/api/SOs", serviceObject.getAllSoForUser);
-    app.get("/api/:gateway/SOs", serviceObject.getAllSoForGateway);
+    app.get("/api", serviceObject.getAllSoForUser);
+    app.get("/api/:gateway/sos", serviceObject.getAllSoForGateway);
 
     // API for Sensor Data
     app.put("/api/:soID/streams/:streamid", sensorData.add);
