@@ -277,14 +277,8 @@ function validateGatewaySyntax(gateway) {
  * @returns {Promise} whether adding was successful or not.
  */
 function addGateway(newGateway) {
-    return new Promise(function (resolve, reject) {
-        new Gateway(newGateway).save(function (err, gateway) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(gateway._id);
-            }
-        });
+    return new Gateway(newGateway).save().then(function (gateway) {
+        return Promise.resolve(gateway._id);
     });
 }
 
