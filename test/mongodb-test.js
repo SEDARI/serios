@@ -339,12 +339,9 @@ describe("mongoose", function () {
                 });
 
                 it("Should successfully update gateway information when updating service object", function () {
-                    return db.updateServiceObject(soID, newSo).then(function (updatedSO) {
-                        expect(soID).to.equal(updatedSO._id);
-                        expect(gID).to.equal(updatedSO.gatewayID);
-                        expect(newSo.name).to.deep.equal(updatedSO.name);
-                        expect(newSo.description).to.deep.equal(updatedSO.description);
-                        expect(newSo.streams.length).to.equal(updatedSO.streams.length);
+                    return db.updateServiceObject(soID, newSo).then(function (res) {
+                        expect(soID).to.equal(res.soID);
+                        expect(gID).to.equal(res.gatewayID);
                     }).should.be.fulfilled;
                 });
             });
@@ -363,9 +360,9 @@ describe("mongoose", function () {
                 });
 
                 it("Should successfully create gateway when updating service object", function () {
-                    return db.updateServiceObject(soID, so).then(function (createdGID) {
-                        expect(createdGID.gatewayID).to.not.equal(undefined);
-                        gID = createdGID.gatewayID;
+                    return db.updateServiceObject(soID, so).then(function (res) {
+                        expect(res.gatewayID).to.not.equal(undefined);
+                        gID = res.gatewayID;
                     }).should.be.fulfilled;
                 });
             });
@@ -522,7 +519,7 @@ describe("mongoose", function () {
         describe(".addGateway()", function () {
             var gatewayID;
 
-            describe("Succesful gateway add", function () {
+            describe("Successful gateway add", function () {
                 after(function () {
                     return db.removeGateway(gatewayID).should.be.fulfilled;
                 });
@@ -656,7 +653,7 @@ describe("mongoose", function () {
             it("Should successfully get all gateways for a user", function () {
                 return db.getAllGatewaysForUser(ownerID).then(function (gateways) {
                     expect(gateways.length).to.not.equal(0);
-                    expect(gateways[0].id).to.not.equal(gateways[1].id);
+                    expect(gateways[0]).to.not.equal(gateways[1]);
                 }).should.be.fulfilled;
             });
 
