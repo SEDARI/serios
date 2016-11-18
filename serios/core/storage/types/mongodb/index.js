@@ -34,7 +34,8 @@ module.exports = {
     validateSensorDataSyntax: validateSensorDataSyntax,
     addSensorData: addSensorData,
     removeSensorData: removeSensorData,
-    getAllSensorDataForStream: getAllSensorDataForStream
+    getAllSensorDataForStream: getAllSensorDataForStream,
+    getAllSensorDataForUser: getAllSensorDataForUser
 };
 
 /**
@@ -393,12 +394,14 @@ function validateSensorDataSyntax(soID, streamID, data) {
 /**
  * Adds sensor data to the database for a given stream.
  *
+ * @param ownerID the ownerID of the sensor data.
  * @param soID the service object of the stream.
  * @param streamID the given stream.
  * @param data the added sensor data.
  * @returns {Promise} whether adding was successful or not.
  */
-function addSensorData(soID, streamID, data) {
+function addSensorData(ownerID, soID, streamID, data) {
+    data.ownerID = ownerID;
     data.soID = soID;
     data.streamID = streamID;
     return validateSoIdAndStreamId(soID, streamID).then(function () {
@@ -434,10 +437,30 @@ function removeSensorData(soID, streamID) {
  * @param streamID the given stream.
  * @returns {Promise} Promise with an array of Sensor Data.
  */
-function getAllSensorDataForStream(soID, streamID) {
+function getAllSensorDataForStream(soID, streamID, options) {
+    // TODO Phil 18/11/16: implement options support
     return validateSoIdAndStreamId(soID, streamID).then(function () {
         return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
     }).then(function (data) {
+        return new Promise(function (resolve, reject) {
+            if (data.length === 0) {
+                reject();
+            } else {
+                resolve(data);
+            }
+        });
+    });
+}
+
+/**
+ * Returns an array of all sensor data for a given user.
+ *
+ * @param userID
+ * @returns {Promise} Promise with an array of Sensor Data.
+ */
+function getAllSensorDataForUser(userID, options) {
+    // TODO Phil 18/11/16: implement options support
+    return SensorData.find({ownerID: userID}).lean().exec().then(function (data) {
         return new Promise(function (resolve, reject) {
             if (data.length === 0) {
                 reject();

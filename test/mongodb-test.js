@@ -40,22 +40,22 @@ describe("mongoose", function () {
                 description: "The sensor that measures temperature, humidity and brightness of the Smart Home.",
                 channels: [
                     {
-                        name: "Temperature Sensor outside the house",
+                        name: "temperate1",
                         type: "Number",
                         unit: "Grad Celsius"
                     },
                     {
-                        name: "Temperature Sensor inside the house",
+                        name: "temperate2",
                         type: "Number",
                         unit: "Grad Celsius"
                     },
                     {
-                        name: "Humidity Sensor in the bathroom",
+                        name: "humidity",
                         type: "Number",
                         unit: "Relative Humidity"
                     },
                     {
-                        name: "Brightness Sensor in the bedroom.",
+                        name: "brightness",
                         type: "Number",
                         unit: "Lux"
                     }
@@ -66,12 +66,12 @@ describe("mongoose", function () {
                 description: "The sensor that measures the location of the Smart Home.",
                 channels: [
                     {
-                        name: "Latitude of the Smart Home",
+                        name: "latitude",
                         type: "Number",
                         unit: "Degrees"
                     },
                     {
-                        name: "Longitude of the Smart Home",
+                        name: "longitude",
                         type: "Number",
                         unit: "Degrees"
                     }
@@ -95,7 +95,7 @@ describe("mongoose", function () {
                 description: "The sensor that measures temperature, density and brightness of the Smart Home.",
                 channels: [
                     {
-                        name: "Temperature Sensor outside the house",
+                        name: "temperature2",
                         type: "Number",
                         unit: "Grad Celsius"
                     }
@@ -106,12 +106,12 @@ describe("mongoose", function () {
                 description: "The sensor that measures the location of the Smart Home.",
                 channels: [
                     {
-                        name: "Latitude of the Smart Home",
+                        name: "latitude",
                         type: "Number",
                         unit: "Degrees"
                     },
                     {
-                        name: "Longitude of the Smart Home",
+                        name: "longitude",
                         type: "Number",
                         unit: "Degrees"
                     }
@@ -157,7 +157,7 @@ describe("mongoose", function () {
                     description: "The sensor that measures temperature, density and brightness of the Smart Home.",
                     channels: [
                         {
-                            name: "Temperature Sensor outside the house",
+                            name: "temperature2",
                             type: "Number",
                             unit: "Grad Celsius"
                         }
@@ -179,7 +179,7 @@ describe("mongoose", function () {
                     description: "The sensor that measures temperature, density and brightness of the Smart Home.",
                     channels: {
                         temperature1: {
-                            name: "Temperature Sensor outside the house",
+                            name: "temperature2",
                             type: "Number",
                             unit: "Grad Celsius"
                         }
@@ -666,7 +666,6 @@ describe("mongoose", function () {
 
     describe("Sensor Data", function () {
         var sensordata = {
-            ownerID: ownerID,
             channels: [
                 {
                     name: "temperature1",
@@ -690,7 +689,6 @@ describe("mongoose", function () {
         sensordata2.channels[3].value = 10000;
 
         var badSyntaxSensorData = {
-            ownerID: ownerID,
             channels: [
                 {
                     name: "temperature1"
@@ -727,21 +725,19 @@ describe("mongoose", function () {
             });
 
             it("Should successfully add sensor data", function () {
-                return db.addSensorData(soID, streamID, sensordata).should.be.fulfilled;
+                return db.addSensorData(ownerID, soID, streamID, sensordata).should.be.fulfilled;
             });
 
             it("Should reject adding due to bad syntax", function () {
-                return db.addSensorData(soID, streamID, badSyntaxSensorData).should.be.rejectedWith(Error);
+                return db.addSensorData(ownerID, soID, streamID, badSyntaxSensorData).should.be.rejectedWith(Error);
             });
 
             it("Should reject adding due to missing stream", function () {
-                return db.addSensorData(soID, "missing_stream", sensordata).should.be.rejectedWith(Error);
+                return db.addSensorData(ownerID, soID, "missing_stream", sensordata).should.be.rejectedWith(Error);
             });
 
-            it("Should reject adding due to ownerID", function () {
-                var sensorDataWithoutOwner = clone(sensordata);
-                delete sensorDataWithoutOwner.ownerID;
-                return db.addSensorData(soID, streamID, sensorDataWithoutOwner).should.be.rejectedWith(Error);
+            it("Should reject adding due to undefined ownerID", function () {
+                return db.addSensorData(undefined, soID, streamID, sensordata).should.be.rejectedWith(Error);
             });
         });
 
@@ -753,9 +749,9 @@ describe("mongoose", function () {
                 return db.addServiceObject(so).then(function (res) {
                     soID = res.soID;
                     gID = res.gatewayID;
-                    return db.addSensorData(soID, streamID, sensordata);
+                    return db.addSensorData(ownerID, soID, streamID, sensordata);
                 }).then(function () {
-                    return db.addSensorData(soID, streamID, sensordata2)
+                    return db.addSensorData(ownerID, soID, streamID, sensordata2)
                 }).should.be.fulfilled;
             });
 
@@ -785,9 +781,9 @@ describe("mongoose", function () {
                     return db.addServiceObject(so).then(function (res) {
                         soID = res.soID;
                         gID = res.gatewayID;
-                        return db.addSensorData(soID, streamID, sensordata);
+                        return db.addSensorData(ownerID, soID, streamID, sensordata);
                     }).then(function () {
-                        return db.addSensorData(soID, streamID, sensordata2)
+                        return db.addSensorData(ownerID, soID, streamID, sensordata2)
                     }).should.be.fulfilled;
                 });
 
@@ -830,6 +826,52 @@ describe("mongoose", function () {
 
                 it("Should reject get request due to missing stream", function () {
                     return db.getAllSensorDataForStream(soID, "missing_weatherboard").should.be.rejected;
+                });
+            });
+        });
+
+        describe(".getAllSensorDataForUser", function () {
+            describe("Get all Sensor data for a user", function () {
+                var soID;
+                var gID;
+                var streamID = "Weatherboard";
+                var streamID2 = "Location Sensor";
+                var location_sensordata = {
+                    channels: [
+                        {
+                            name: "latitude",
+                            value: "51.508530"
+                        },
+                        {
+                            name: "longitude",
+                            value: "-0.076132"
+                        }
+                    ]
+                };
+                before(function () {
+                    return db.addServiceObject(so).then(function (res) {
+                        soID = res.soID;
+                        gID = res.gatewayID;
+                        return db.addSensorData(ownerID, soID, streamID, sensordata);
+                    }).then(function () {
+                        return db.addSensorData(ownerID, soID, streamID2, location_sensordata)
+                    }).should.be.fulfilled;
+                });
+
+                after(function () {
+                    return db.removeGateway(gID)
+                        .then(function () {
+                            return db.removeSensorData(soID, streamID)
+                        }).then(function () {
+                            return db.removeServiceObject(soID)
+                        }).should.be.fulfilled;
+                });
+
+                it("Should successfully get all sensor data for a stream", function () {
+                    return db.getAllSensorDataForUser(ownerID).then(function (data) {
+                        expect(data[0].channels[3]).to.not.equal(data[1].channels[3]);
+                        expect(data[0].channels[0].value).to.equal(data[1].channels[0].value);
+                    }).should.be.fulfilled;
                 });
             });
         });

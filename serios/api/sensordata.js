@@ -9,7 +9,8 @@ var storage = require("../core/storage");
 
 module.exports = {
     add: add,
-    getAllData: getSensorData,
+    getDataForStream: getSensorDataForStream,
+    getDataForUser: getSensorDataForUser,
     remove: remove
 };
 
@@ -18,15 +19,17 @@ function add(req, res) {
     var soID = req.params.soID;
     var streamID = req.params.streamID;
     var sensorData = req.body;
+    var ownerID;
 
     checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function () {
+    }).then(function (userID) {
+        ownerID = userID;
         return validateSyntax(sensorData);
     }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data."});
     }).then(function () {
-        return addSensorData(soID, streamID, sensorData);
+        return addSensorData(ownerID, soID, streamID, sensorData);
     }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not save Sensor Data."});
     }).then(function () {
@@ -48,15 +51,31 @@ function remove(req, res) {
     });
 }
 
-function getSensorData(req, res) {
+function getSensorDataForStream(req, res) {
     var authorization = req.headers.authorization;
+    var options = req.params.options;
 
     checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(function () {
-        return getAllSensorData(req.params.soID, req.params.streamID, req.params.options);
+        return getAllSensorDataForStream(req.params.soID, req.params.streamID, options);
     }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
+    }).then(function (data) {
+        res.status(200).json({data: data});
+    });
+}
+
+function getSensorDataForUser(req, res) {
+    var authorization = req.headers.authorization;
+    var options = req.params.options;
+
+    checkPermission(authorization).catch(function () {
+        res.status(403).json({msg: "Forbidden. Access was denied!"});
+    }).then(function (userID) {
+        return getAllSensorDataForUser(userID, options);
+    }).catch(function () {
+        res.status(400).json({msg: "Bad Request. Could not find any data for given User."});
     }).then(function (data) {
         res.status(200).json({data: data});
     });
@@ -65,13 +84,14 @@ function getSensorData(req, res) {
 /**
  * Calls the storage to add sensor data for a specific stream.
  *
+ * @param ownerID the owner of the added sensor data.
  * @param soID the service object of the stream.
  * @param streamID the stream that the data is pushed for.
  * @param data the data that is pushed.
  * @returns {Promise}
  */
-var addSensorData = function (soID, streamID, data) {
-    storage.addSensorData(soID, streamID, data);
+var addSensorData = function (ownerID, soID, streamID, data) {
+    storage.addSensorData(ownerID, soID, streamID, data);
 };
 
 /**
@@ -90,10 +110,22 @@ var removeSensorData = function (soID, streamID) {
  *
  * @param soID the service object of the stream.
  * @param streamID the stream which data is returned.
+ * @param options query options, e.g. a timestamp.
  * @returns {Promise}
  */
-var getAllSensorData = function (soID, streamID) {
-    storage.getSensorDataForStream(soID, streamID);
+var getAllSensorDataForStream = function (soID, streamID, options) {
+    storage.getSensorDataForStream(soID, streamID, options);
+};
+
+/**
+ * Calls the storage to get all sensor data stored for a user.
+ *
+ * @param userID the user the data is return for.
+ * @param options query options, e.g. a timestamp.
+ * @returns {Promise}
+ */
+var getAllSensorDataForUser = function (userID, options) {
+    storage.getSensorDataForUser(userID, options);
 };
 
 /**

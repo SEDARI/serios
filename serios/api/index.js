@@ -78,7 +78,9 @@ function init(_server, _core) {
 
     // API for Sensor Data
     app.put("/api/:soID/streams/:streamID", sensorData.add);
-    app.get("/api/:soID/streams/:streamID/:options", sensorData.getAllData);
+    app.get("/api/:soID/streams/:streamID/:options", sensorData.getDataForStream);
+    // TODO Phil 18/11/16: maybe add getting sensor data for gateway
+    app.get("/api/data/:options", sensorData.getDataForUser);
     app.delete("/api/:soID/streams/:streamID", sensorData.remove);
 
     core.app.use(app);

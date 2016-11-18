@@ -64,8 +64,11 @@ module.exports = {
     removeSensorData : function (soID, streamID) {
         return storage.removeSensorData(soID, streamID);
     },
-    getSensorDataForStream : function (soID, streamID) {
-        return storage.getSensorDataForStream(soID, streamID);
+    getSensorDataForStream : function (soID, streamID, options) {
+        return storage.getSensorDataForStream(soID, streamID, options);
+    },
+    getSensorDataForUser : function (userID, options) {
+        return storage.getSensorDataForUser(userID, options);
     }
 };
 
@@ -75,7 +78,6 @@ module.exports = {
  * @param settings the settings for the storage.
  */
 function init(settings) {
-
     var type = settings.type;
     storage = require("./types/" + type);
     storage.init(settings);
