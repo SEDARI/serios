@@ -300,7 +300,14 @@ function SensorDataSchema() {
                     var array = so.streams.map(function (stream) {
                         return stream.name;
                     });
-                    if (array.includes(streamID)) {
+
+                    /*
+                     * Better solution would be to call
+                     * `if (array.includes(streamID)) {...}`,
+                     * but it is only supported since nodejs version 6
+                     * this is the alternative.
+                     */
+                    if (array.indexOf(streamID) >= 0) {
                         return resolve();
                     } else {
                         return reject(new Error("Could not find Stream in Service Object"));
