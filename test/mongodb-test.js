@@ -16,6 +16,7 @@ var should = chai.should();
 var expect = chai.expect;
 chai.use(require("chai-as-promised"));
 var clone = require("clone");
+var uuid = require("node-uuid");
 
 var mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
@@ -26,9 +27,9 @@ var settings = clone(require("../settings").storage);
 settings.location = "mongodb://localhost:27017/serios-testserver";
 
 describe("mongoose", function () {
-    this.timeout(100);
+    this.timeout(1000);
 
-    var ownerID = "33f38fh83h3d83";
+    var ownerID = uuid.v4();
     var so = {
         name: "Smart Home 1 Weather Sensors",
         description: "This Service Object holds all weather related sensors of Smart Home 1.",
@@ -665,6 +666,7 @@ describe("mongoose", function () {
 
     describe("Sensor Data", function () {
         var sensordata = {
+            ownerID: ownerID,
             channels: [
                 {
                     name: "temperature1",
@@ -688,6 +690,7 @@ describe("mongoose", function () {
         sensordata2.channels[3].value = 10000;
 
         var badSyntaxSensorData = {
+            ownerID: ownerID,
             channels: [
                 {
                     name: "temperature1"
@@ -733,6 +736,12 @@ describe("mongoose", function () {
 
             it("Should reject adding due to missing stream", function () {
                 return db.addSensorData(soID, "missing_stream", sensordata).should.be.rejectedWith(Error);
+            });
+
+            it("Should reject adding due to ownerID", function () {
+                var sensorDataWithoutOwner = clone(sensordata);
+                delete sensorDataWithoutOwner.ownerID;
+                return db.addSensorData(soID, streamID, sensorDataWithoutOwner).should.be.rejectedWith(Error);
             });
         });
 

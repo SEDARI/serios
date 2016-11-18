@@ -246,6 +246,10 @@ function ServiceObjectSchema() {
  */
 function SensorDataSchema() {
     var schema = mongoose.Schema({
+            ownerID: {
+                type: String,
+                required: [true, 'Sensor data ownerID required']
+            },
             soID: {
                 type: String,
                 required: true
