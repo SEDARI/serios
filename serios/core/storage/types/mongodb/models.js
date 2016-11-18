@@ -6,7 +6,7 @@ var mongoose = require("mongoose");
 /**
  * Used to generate uuIDs.
  */
-var uuid = require("node-uuid");
+var uuid = require("uuid");
 
 /**
  * The gateway description is further explained in the
@@ -44,7 +44,7 @@ function GatewaySchema() {
     var schema = mongoose.Schema({
             _id: {
                 type: String,
-                default: uuid.v4
+                default: uuid
             },
             ownerID: {
                 type: String,
@@ -84,7 +84,7 @@ function ServiceObjectSchema() {
     var schema = mongoose.Schema({
             _id: {
                 type: String,
-                default: uuid.v4
+                default: uuid
             },
             ownerID: {
                 type: String,

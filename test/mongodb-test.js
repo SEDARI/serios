@@ -16,7 +16,7 @@ var should = chai.should();
 var expect = chai.expect;
 chai.use(require("chai-as-promised"));
 var clone = require("clone");
-var uuid = require("node-uuid");
+var uuid = require("uuid");
 
 var mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
@@ -29,7 +29,7 @@ settings.location = "mongodb://localhost:27017/serios-testserver";
 describe("mongoose", function () {
     this.timeout(1000);
 
-    var ownerID = uuid.v4();
+    var ownerID = uuid();
     var so = {
         name: "Smart Home 1 Weather Sensors",
         description: "This Service Object holds all weather related sensors of Smart Home 1.",
