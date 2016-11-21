@@ -48,3 +48,4 @@ gen
 
 public/
 *.sqlite3
+tokens.sqlite3_tokens/
