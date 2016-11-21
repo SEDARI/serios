@@ -294,6 +294,7 @@ describe("mongoose", function () {
                 });
             });
         });
+
         describe(".updateServiceObject()", function () {
             var soID;
             describe("Update service object", function () {
@@ -381,6 +382,10 @@ describe("mongoose", function () {
 
                 after(function () {
                     return db.removeGateway(gID).then(db.removeServiceObject(soID)).should.be.fulfilled;
+                });
+
+                it("Should reject updating due to missing service object", function () {
+                    return db.updateServiceObject("wrong_soID", so).should.be.rejectedWith(Error);
                 });
 
                 it("Should reject updating due to bad syntax", function () {

@@ -132,6 +132,9 @@ function updateServiceObject(soID, newSo) {
     };
 
     return ServiceObject.findById(soID).exec().then(function (oldSo) {
+        if (!oldSo) {
+            return Promise.reject(new Error("Could not find Service Object"));
+        }
         var gateway = newSo.gateway;
         var options;
         if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
