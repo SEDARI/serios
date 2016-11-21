@@ -563,7 +563,7 @@ describe("mongoose", function () {
             });
 
             it("Should reject updating request due to not finding gateway ID", function () {
-                return db.updateGateway("wrong_id", gateway).should.be.rejected;
+                return db.updateGateway("wrong_id", gateway).should.be.rejectedWith(Error);
             });
         });
 

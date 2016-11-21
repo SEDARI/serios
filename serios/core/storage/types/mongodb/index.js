@@ -304,7 +304,7 @@ function addGateway(newGateway) {
 function updateGateway(gatewayID, gateway) {
     return new Promise(function (resolve, reject) {
         Gateway.findByIdAndUpdate(gatewayID, gateway, {runValidators: true, new: true}, function (err, updatedGateway) {
-            if (err || !updatedGateway) {
+            if (err) {
                 reject(err);
             } else if (!updatedGateway) {
                 reject(new Error("Could not find gateway."));
