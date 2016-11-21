@@ -32,8 +32,8 @@ function add(req, res) {
         return addSO(so);
     }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not save Service Object."});
-    }).then(function (res) {
-        res.status(200).json({soID: res.soID, gatewayID: res.gatewayID, msg: "OK. Service Object was added."});
+    }).then(function (result) {
+        res.status(200).json({soID: result.soID, gatewayID: result.gatewayID, msg: "OK. Service Object was added."});
     });
 }
 
@@ -53,8 +53,8 @@ function update(req, res) {
         return updateSO(soID, so);
     }).catch(function () {
         res.status(507).json({msg: "Insufficient Storage. Could not save Service Object."});
-    }).then(function (res) {
-        res.status(200).json({soID: res.soID, gatewayID: res.gatewayID, msg: "OK. Service Object was modified."});
+    }).then(function (result) {
+        res.status(200).json({soID: result.soID, gatewayID: result.gatewayID, msg: "OK. Service Object was modified."});
     });
 }
 
