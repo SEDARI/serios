@@ -25,7 +25,7 @@ function add(req, res) {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(function (userID) {
         ownerID = userID;
-        return validateSyntax(sensorData);
+        return validateSyntax(ownerID, soID, streamID, sensorData);
     }).catch(function () {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data."});
     }).then(function () {
@@ -131,9 +131,12 @@ var getAllSensorDataForUser = function (userID, options) {
 /**
  * Calls the storage to validate the syntax of given sensor data.
  *
+ * @param userID the user that adds the sensor data.
+ * @param soID the service object of the stream.
+ * @param streamID the stream which data is added for.
  * @param sensorData the sensor data that is validated.
  * @returns {Promise}
  */
-var validateSyntax = function (sensorData) {
-    return storage.validateSensorDataSyntax(sensorData);
+var validateSyntax = function (userID, soID, streamID, sensorData) {
+    return storage.validateSensorDataSyntax(userID, soID, streamID, sensorData);
 };

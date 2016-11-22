@@ -381,12 +381,14 @@ function validateSoIdAndStreamId(soID, streamID) {
 /**
  * Validates if a given JSON has the correct SensorData syntax.
  *
+ * @param ownerID the ownerID of the sensor data.
  * @param soID the service object of the stream.
  * @param streamID the given stream.
  * @param data the given JSON
  * @returns {Promise} whether the given JSON has correct SensorData syntax or not.
  */
-function validateSensorDataSyntax(soID, streamID, data) {
+function validateSensorDataSyntax(ownerID, soID, streamID, data) {
+    data.ownerID = ownerID;
     data.soID = soID;
     data.streamID = streamID;
     return validateSoIdAndStreamId(soID, streamID).then(function () {
