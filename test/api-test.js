@@ -1,5 +1,9 @@
 process.env.NODE_ENV = 'test';
 
+if (!global.Promise) {
+  global.Promise = require('q');
+}
+
 var http = require("http");
 var express = require("express");
 var app = express();
@@ -111,6 +115,8 @@ describe("API", function () {
     var soWithoutGateway = clone(so);
     delete soWithoutGateway.gateway;
 
+    // TODO Phil 23/11/16: test for incorrect json syntax
+
     describe("Service Objects", function () {
 
         var badSyntaxSO = {
@@ -134,7 +140,7 @@ describe("API", function () {
                                 .del(url_prefix + "/" + soID)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                 });
                         }
                     }).then(function () {
@@ -143,7 +149,7 @@ describe("API", function () {
                                 .del(url_prefix + "/gateway/" + gID)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                 });
                         }
                     });
@@ -156,7 +162,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(soWithoutGateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         soID = res.body.soID;
                         gID = null;
@@ -170,7 +176,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(so)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         expect(res.body).to.have.property("gatewayID");
                         soID = res.body.soID;
@@ -185,7 +191,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(badSyntaxSO)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                         soID = null;
                         gID = null;
                     });
@@ -197,7 +203,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(so)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                         soID = null;
                         gID = null;
                     });
@@ -213,7 +219,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(soWithoutGateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         soID = res.body.soID;
                     });
@@ -224,7 +230,7 @@ describe("API", function () {
                     .del(url_prefix + "/" + soID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                     });
             });
 
@@ -233,7 +239,7 @@ describe("API", function () {
                         .get(url_prefix + "/" + soID)
                         .set("Authorization", userID)
                         .then(function (res) {
-                            expect(res.status).to.equal(200);
+                            expect(res).to.have.status(200);
                             expect(res.body).to.have.property("name");
                             expect(res.body).to.have.property("description");
                             expect(res.body).to.have.property("streams");
@@ -246,7 +252,7 @@ describe("API", function () {
                     .get(url_prefix + "/" + "wrong_soID")
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
 
@@ -254,7 +260,7 @@ describe("API", function () {
                 return chai.request(app)
                     .get(url_prefix + "/" + soID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
@@ -274,7 +280,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(soWithoutGateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         soID = res.body.soID;
                     });
@@ -284,7 +290,7 @@ describe("API", function () {
                     .del(url_prefix + "/" + soID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
 
                     });
             });
@@ -296,7 +302,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(updatedSo)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
 
                     });
             });
@@ -307,7 +313,7 @@ describe("API", function () {
                     .set("Authorization", userID)
                     .send(updatedSo)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
 
                     });
             });
@@ -317,7 +323,7 @@ describe("API", function () {
                     .put(url_prefix + "/" + soID)
                     .send(updatedSo)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
 
                     });
             });
@@ -333,7 +339,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(soWithoutGateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         soID = res.body.soID;
                     });
@@ -344,7 +350,7 @@ describe("API", function () {
                         .del(url_prefix + "/" + soID)
                         .set("Authorization", userID)
                         .then(function (res) {
-                            expect(res.status).to.equal(200);
+                            expect(res).to.have.status(200);
                         });
                 }
             });
@@ -354,7 +360,7 @@ describe("API", function () {
                     .del(url_prefix + "/" + soID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         soID = null;
                     });
             });
@@ -364,7 +370,7 @@ describe("API", function () {
                     .del(url_prefix + "/" + "This_cannot_be_a_id")
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
 
@@ -372,7 +378,7 @@ describe("API", function () {
                 return chai.request(app)
                     .put(url_prefix + "/" + soID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
@@ -389,7 +395,7 @@ describe("API", function () {
                             .set("Content-Type", "application/json")
                             .send(soWithoutGateway)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                                 expect(res.body).to.have.property("soID");
                                 soID1 = res.body.soID;
                             });
@@ -400,7 +406,7 @@ describe("API", function () {
                             .set("Content-Type", "application/json")
                             .send(soWithoutGateway)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                                 expect(res.body).to.have.property("soID");
                                 soID2 = res.body.soID;
                             });
@@ -413,14 +419,14 @@ describe("API", function () {
                             .del(url_prefix + "/" + soID1)
                             .set("Authorization", userID)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                             });
                     }).then(function () {
                         return chai.request(app)
                             .del(url_prefix + "/" + soID2)
                             .set("Authorization", userID)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                             });
                     });
             });
@@ -430,7 +436,7 @@ describe("API", function () {
                     .get(url_prefix + "/sos")
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.deep.equal([soID1, soID2]);
                     });
             });
@@ -439,7 +445,7 @@ describe("API", function () {
                 return chai.request(app)
                     .get(url_prefix + "/sos")
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
@@ -459,7 +465,7 @@ describe("API", function () {
                                 .set("Content-Type", "application/json")
                                 .send(gateway)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                     expect(res.body).to.have.property("gatewayID");
                                     gID = res.body.gatewayID;
                                     soWithGateway.gateway = {
@@ -473,7 +479,7 @@ describe("API", function () {
                                 .set("Content-Type", "application/json")
                                 .send(soWithGateway)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                     expect(res.body).to.have.property("soID");
                                     soID1 = res.body.soID;
                                 });
@@ -484,7 +490,7 @@ describe("API", function () {
                                 .set("Content-Type", "application/json")
                                 .send(soWithGateway)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                     expect(res.body).to.have.property("soID");
                                     soID2 = res.body.soID;
                                 });
@@ -497,21 +503,21 @@ describe("API", function () {
                                 .del(url_prefix + "/" + soID1)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                 });
                         }).then(function () {
                             return chai.request(app)
                                 .del(url_prefix + "/" + soID2)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                 });
                         }).then(function () {
                             return chai.request(app)
                                 .del(url_prefix + "/gateway/" + gID)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                 });
                         });
                 });
@@ -521,7 +527,7 @@ describe("API", function () {
                         .get(url_prefix + "/" + gID + "/sos")
                         .set("Authorization", userID)
                         .then(function (res) {
-                            expect(res.status).to.equal(200);
+                            expect(res).to.have.status(200);
                             expect(res.body).to.deep.equal([soID1, soID2]);
 
                         });
@@ -532,7 +538,7 @@ describe("API", function () {
                         .get(url_prefix + "/" + "missing_gateway" + "/sos")
                         .set("Authorization", userID)
                         .catch(function (res) {
-                            expect(res.status).to.equal(400);
+                            expect(res).to.have.status(400);
 
                         });
                 });
@@ -541,7 +547,7 @@ describe("API", function () {
                     return chai.request(app)
                         .get(url_prefix + "/" + gID + "/sos")
                         .catch(function (res) {
-                            expect(res.status).to.equal(403);
+                            expect(res).to.have.status(403);
 
                         });
                 });
@@ -559,7 +565,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("gatewayID");
                         gID = res.body.gatewayID;
                         soWithGateway.gateway = {
@@ -573,7 +579,7 @@ describe("API", function () {
                     .del(url_prefix + "/gateway/" + gID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
 
                     });
             });
@@ -582,7 +588,7 @@ describe("API", function () {
                     .get(url_prefix + "/" + gID + "/sos")
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
         });
@@ -604,7 +610,7 @@ describe("API", function () {
                                 .del(url_prefix + "/gateway/" + gID)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(200);
+                                    expect(res).to.have.status(200);
                                 });
                         }
                     });
@@ -617,7 +623,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("gatewayID");
                         gID = res.body.gatewayID;
                     });
@@ -630,7 +636,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(badSyntaxGateway)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                         gID = null;
                     });
             });
@@ -641,7 +647,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gateway)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                         gID = null;
                     });
             });
@@ -663,7 +669,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("gatewayID");
                         gID = res.body.gatewayID;
                     });
@@ -674,7 +680,7 @@ describe("API", function () {
                     .del(url_prefix + "/gateway/" + gID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                     });
             });
 
@@ -685,7 +691,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gatewayUpdated)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                     });
             });
 
@@ -696,7 +702,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(badSyntaxGateway)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
 
@@ -706,7 +712,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gatewayUpdated)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
@@ -721,7 +727,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("gatewayID");
                         gID = res.body.gatewayID;
                     });
@@ -732,7 +738,7 @@ describe("API", function () {
                     .del(url_prefix + "/gateway/" + gID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                     });
             });
 
@@ -741,7 +747,7 @@ describe("API", function () {
                     .get(url_prefix + "/gateway/" + gID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                     });
             });
 
@@ -750,7 +756,7 @@ describe("API", function () {
                     .get(url_prefix + "/gateway/" + "THIS_CANNOT_BE_A_GATEWAY_ID")
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
 
@@ -758,7 +764,7 @@ describe("API", function () {
                 return chai.request(app)
                     .get(url_prefix + "/gateway/" + gID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
@@ -773,7 +779,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(gateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("gatewayID");
                         gID = res.body.gatewayID;
                     });
@@ -785,7 +791,7 @@ describe("API", function () {
                         .del(url_prefix + "/gateway/" + gID)
                         .set("Authorization", userID)
                         .then(function (res) {
-                            expect(res.status).to.equal(200);
+                            expect(res).to.have.status(200);
                         });
                 }
             });
@@ -795,7 +801,7 @@ describe("API", function () {
                     .del(url_prefix + "/gateway/" + gID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         gID = null;
                     });
             });
@@ -805,7 +811,7 @@ describe("API", function () {
                     .del(url_prefix + "/gateway/" + "THIS_CANNOT_BE_A_GATEWAY_ID")
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
 
@@ -814,7 +820,7 @@ describe("API", function () {
             //     chai.request(app)
             //         .del(url_prefix + "/gateway/" + gID)
             //         .catch(function (res) {
-            //             expect(res.status).to.equal(403);
+            //             expect(res).to.have.status(403);
             //         });
             // });
         });
@@ -831,7 +837,7 @@ describe("API", function () {
                             .set("Content-Type", "application/json")
                             .send(gateway)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                                 expect(res.body).to.have.property("gatewayID");
                                 gID1 = res.body.gatewayID;
                             });
@@ -842,7 +848,7 @@ describe("API", function () {
                             .set("Content-Type", "application/json")
                             .send(gateway)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                                 expect(res.body).to.have.property("gatewayID");
                                 gID2 = res.body.gatewayID;
                             });
@@ -856,14 +862,14 @@ describe("API", function () {
                             .del(url_prefix + "/gateway/" + gID1)
                             .set("Authorization", userID)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                             });
                     }).then(function () {
                         return chai.request(app)
                             .del(url_prefix + "/gateway/" + gID2)
                             .set("Authorization", userID)
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                             });
                     });
 
@@ -874,7 +880,7 @@ describe("API", function () {
                     .get(url_prefix + "/gateway")
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.deep.equal([gID1, gID2]);
                     });
             });
@@ -883,7 +889,7 @@ describe("API", function () {
                 return chai.request(app)
                     .get(url_prefix + "/gateway")
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
@@ -894,13 +900,12 @@ describe("API", function () {
                     .get(url_prefix + "/gateway")
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
         });
     });
 
-    /*
     describe("Sensor Data", function () {
         var sensordata = {
             channels: [
@@ -953,7 +958,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(soWithoutGateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         soID = res.body.soID;
                         streamID = so.streams[0].name;
@@ -966,7 +971,7 @@ describe("API", function () {
                     .set("Authorization", userID)
                     .set("Content-Type", "application/json")
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                     }).then(function () {
                         // TODO Phil 23/11/16: test removing sensor data
                         // if (added) {
@@ -974,7 +979,7 @@ describe("API", function () {
                         //         .del(url_prefix + "/" + soID + "/" + streamID)
                         //         .set("Authorization", userID)
                         //         .then(function (res) {
-                        //             expect(res.status).to.equal(200);
+                        //             expect(res).to.have.status(200);
                         //         });
                         // }
                     });
@@ -987,7 +992,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(sensordata)
                     .then(function (res) {
-                        expect(res.status).to.equal(201);
+                        expect(res).to.have.status(201);
                         added = true;
                     });
             });
@@ -999,7 +1004,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(badSyntaxSensorData)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                         added = false;
                     });
             });
@@ -1010,7 +1015,7 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .send(sensordata)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                         added = false;
                     });
             });
@@ -1028,8 +1033,8 @@ describe("API", function () {
                             .set("Authorization", userID)
                             .set("Content-Type", "application/json")
                             .send(soWithoutGateway)
-                            .then(function (err, res) {
-                                expect(res.status).to.equal(200);
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
                                 expect(res.body).to.have.property("soID");
                                 soID = res.body.soID;
                                 streamID = so.streams[0].name;
@@ -1040,8 +1045,8 @@ describe("API", function () {
                             .set("Authorization", userID)
                             .set("Content-Type", "application/json")
                             .send(sensordata)
-                            .then(function (err, res) {
-                                expect(res.status).to.equal(201);
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
                             });
                     }).then(function () {
                         return chai.request(app)
@@ -1049,8 +1054,8 @@ describe("API", function () {
                             .set("Authorization", userID)
                             .set("Content-Type", "application/json")
                             .send(sensordata)
-                            .then(function (err, res) {
-                                expect(res.status).to.equal(201);
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
                             });
                     });
             });
@@ -1063,7 +1068,7 @@ describe("API", function () {
                             .set("Authorization", userID)
                             .set("Content-Type", "application/json")
                             .then(function (res) {
-                                expect(res.status).to.equal(200);
+                                expect(res).to.have.status(200);
                             });
                     }).then(function () {
                         if (!removed) {
@@ -1071,7 +1076,7 @@ describe("API", function () {
                                 .del(url_prefix + "/" + soID + "/streams/" + streamID)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(204);
+                                    expect(res).to.have.status(204);
                                 });
                         }
                     });
@@ -1082,19 +1087,20 @@ describe("API", function () {
                     .del(url_prefix + "/" + soID + "/streams/" + streamID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(204);
+                        expect(res).to.have.status(204);
                         removed = true;
                     });
             });
 
-            it("Should reject request due to missing authentication", function () {
-                return chai.request(app)
-                    .del(url_prefix + "/" + soID + "/streams/" + streamID)
-                    .catch(function (res) {
-                        expect(res.status).to.equal(403);
-                        removed = false;
-                    });
-            });
+            // TODO Phil 22/11/16: This test case doesn't work yet, as there is still a problem with chaining promises.
+            // it("Should reject request due to missing authentication", function () {
+            //     return chai.request(app)
+            //         .del(url_prefix + "/" + soID + "/streams/" + streamID)
+            //         .catch(function (res) {
+            //             expect(res).to.have.status(403);
+            //             removed = false;
+            //         });
+            // });
         });
 
         describe("Doesn't remove Sensor Data for Stream as it is not added", function () {
@@ -1102,13 +1108,13 @@ describe("API", function () {
             var streamID;
             var removed = false;
             before(function () {
-                chai.request(app)
+                return chai.request(app)
                     .post(url_prefix)
                     .set("Authorization", userID)
                     .set("Content-Type", "application/json")
                     .send(soWithoutGateway)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("soID");
                         soID = res.body.soID;
                         streamID = so.streams[0].name;
@@ -1116,19 +1122,19 @@ describe("API", function () {
             });
 
             after(function () {
-                chai.request(app)
+                return chai.request(app)
                     .del(url_prefix + "/" + soID)
                     .set("Authorization", userID)
                     .set("Content-Type", "application/json")
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
 
                         if (!removed) {
                             return chai.request(app)
                                 .del(url_prefix + "/" + soID + "/streams/" + streamID)
                                 .set("Authorization", userID)
                                 .then(function (res) {
-                                    expect(res.status).to.equal(204);
+                                    expect(res).to.have.status(204);
                                 });
                         }
                     });
@@ -1140,7 +1146,7 @@ describe("API", function () {
             //         .del(url_prefix + "/" + soID + "/streams/" + streamID)
             //         .set("Authorization", userID)
             //         .catch(function (res) {
-            //             expect(res.status).to.equal(400);
+            //             expect(res).to.have.status(400);
             //             removed = false;
             //         });
             // });
@@ -1148,54 +1154,112 @@ describe("API", function () {
         });
 
         describe("get Sensor Data", function () {
+            var soID;
+            var streamID;
+
+            before(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(app)
+                            .post(url_prefix)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(soWithoutGateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("soID");
+                                soID = res.body.soID;
+                                streamID = so.streams[0].name;
+                            });
+                    }).then(function () {
+                        return chai.request(app)
+                            .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(sensordata)
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
+                            });
+                    }).then(function () {
+                        return chai.request(app)
+                            .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(sensordata)
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
+                            });
+                    });
+            });
+
+            after(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(app)
+                            .del(url_prefix + "/" + soID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
+                    }).then(function () {
+                        return chai.request(app)
+                            .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(204);
+                            });
+                    });
+            });
+
             it("Should accept request and return sensor data", function () {
-                var soID = "";
-                var streamID = "";
-                chai.request(app)
+                return chai.request(app)
                     .get(url_prefix + "/" + soID + "/streams/" + streamID)
                     .set("Authorization", userID)
                     .then(function (res) {
-                        expect(res.status).to.equal(200);
+                        expect(res).to.have.status(200);
                         expect(res.body).to.have.property("data");
                     });
             });
 
-            it("Should accept request and return sensor data with options", function () {
-                var soID = "";
-                var streamID = "";
-                var options = "";
-                chai.request(app)
+            // TODO Phil 23/11/16: Options are not implemented yet. So long this is covered by the test case below the out-commented part
+            // it("Should accept request and return sensor data with options", function () {
+            //     return chai.request(app)
+            //         .get(url_prefix + "/" + soID + "/streams/" + streamID + "/" + options)
+            //         .set("Authorization", userID)
+            //         .then(function (res) {
+            //             expect(res).to.have.status(200);
+            //             expect(res.body).to.have.property("data");
+            //         });
+            // });
+
+            it("Should reject request to return sensor data with options as it's not yet implemented", function () {
+                var options = {timestamp: 2143923232};
+                return chai.request(app)
                     .get(url_prefix + "/" + soID + "/streams/" + streamID + "/" + options)
                     .set("Authorization", userID)
-                    .then(function (res) {
-                        expect(res.status).to.equal(200);
-                        expect(res.body).to.have.property("data");
+                    .catch(function (res) {
+                        expect(res).to.have.status(501);
                     });
             });
 
             it("Should reject request due to missing sensor data", function () {
-                var soID = "";
-                var streamID = "";
-                chai.request(app)
+                return chai.request(app)
                     .get(url_prefix + "/" + soID + "/streams/" + streamID)
                     .set("Authorization", userID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(400);
+                        expect(res).to.have.status(400);
                     });
             });
 
-            it("Should reject request due to failed authentication", function () {
-                var soID = "";
-                var streamID = "";
-                chai.request(app)
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(app)
                     .get(url_prefix + "/" + soID + "/streams/" + streamID)
-                    .set("Authorization", badUserID)
                     .catch(function (res) {
-                        expect(res.status).to.equal(403);
+                        expect(res).to.have.status(403);
                     });
             });
         });
     });
-    */
 });
 
