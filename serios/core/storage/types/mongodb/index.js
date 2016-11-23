@@ -34,8 +34,8 @@ module.exports = {
     validateSensorDataSyntax: validateSensorDataSyntax,
     addSensorData: addSensorData,
     removeSensorData: removeSensorData,
-    getAllSensorDataForStream: getAllSensorDataForStream,
-    getAllSensorDataForUser: getAllSensorDataForUser
+    getSensorDataForStream: getSensorDataForStream,
+    getSensorDataForUser: getSensorDataForUser
 };
 
 /**
@@ -449,9 +449,10 @@ function removeSensorData(soID, streamID) {
  *
  * @param soID the service object of the stream.
  * @param streamID the given stream.
+ * @param options query options for the request.
  * @returns {Promise} Promise with an array of Sensor Data.
  */
-function getAllSensorDataForStream(soID, streamID, options) {
+function getSensorDataForStream(soID, streamID, options) {
     // TODO Phil 18/11/16: implement options support
     return validateSoIdAndStreamId(soID, streamID).then(function () {
         return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
@@ -469,10 +470,11 @@ function getAllSensorDataForStream(soID, streamID, options) {
 /**
  * Returns an array of all sensor data for a given user.
  *
- * @param userID
+ * @param userID the identifier of the user the sensor data is returned for.
+ * @param options query options for the request.
  * @returns {Promise} Promise with an array of Sensor Data.
  */
-function getAllSensorDataForUser(userID, options) {
+function getSensorDataForUser(userID, options) {
     // TODO Phil 18/11/16: implement options support
     return SensorData.find({ownerID: userID}).lean().exec().then(function (data) {
         return new Promise(function (resolve, reject) {
