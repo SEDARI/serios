@@ -12,8 +12,8 @@ function init(_settings, _api) {
 
     // init idm must be first
     mainApp = idm.init(settings);
-    
-    storage.init(settings.storage);
+
+    return storage.init(settings.storage);
 }
 
 function start() {
@@ -21,12 +21,18 @@ function start() {
     return when.resolve();
 }
 
+function stop() {
+    // need to stop storage, neros, etc. here
+    return Promise.resolve();
+}
+
 module.exports = {
     init : init,
     start : start,
-    
+    stop: stop,
+
     storage : storage,
-    
+
     get settings() { return settings; },
     get app() { return mainApp; },
     get api() { return api; },
