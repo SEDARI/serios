@@ -27,7 +27,7 @@ var settings = clone(require("../settings").storage);
 settings.location = "mongodb://localhost:27017/serios-testserver";
 
 describe("mongoose", function () {
-    this.timeout(1000);
+    this.timeout(10000);
 
     var ownerID = uuid();
     var so = {
@@ -726,7 +726,7 @@ describe("mongoose", function () {
             });
 
             after(function () {
-                return db.removeServiceObject(soID).then(db.removeGateway(gID)).should.be.fulfilled;
+                return db.removeServiceObject(soID).then(db.removeGateway(gID)).then(db.removeSensorData(soID, streamID)).should.be.fulfilled;
             });
 
             it("Should successfully add sensor data", function () {
@@ -777,7 +777,7 @@ describe("mongoose", function () {
             });
         });
 
-        describe(".getAllSensorDataForStream", function () {
+        describe(".getSensorDataForStream", function () {
             describe("Get all Sensor data for a stream", function () {
                 var soID;
                 var gID;
@@ -802,7 +802,7 @@ describe("mongoose", function () {
                 });
 
                 it("Should successfully get all sensor data for a stream", function () {
-                    return db.getAllSensorDataForStream(soID, streamID).then(function (data) {
+                    return db.getSensorDataForStream(soID, streamID).then(function (data) {
                         expect(data[0].channels[3]).to.not.equal(data[1].channels[3]);
                         expect(data[0].channels[0].value).to.equal(data[1].channels[0].value);
                     }).should.be.fulfilled;
@@ -826,16 +826,16 @@ describe("mongoose", function () {
                 });
 
                 it("Should reject get request due to missing sensor data", function () {
-                    return db.getAllSensorDataForStream(soID, streamID).should.be.rejected;
+                    return db.getSensorDataForStream(soID, streamID).should.be.rejected;
                 });
 
                 it("Should reject get request due to missing stream", function () {
-                    return db.getAllSensorDataForStream(soID, "missing_weatherboard").should.be.rejected;
+                    return db.getSensorDataForStream(soID, "missing_weatherboard").should.be.rejected;
                 });
             });
         });
 
-        describe(".getAllSensorDataForUser", function () {
+        describe(".getSensorDataForUser", function () {
             describe("Get all Sensor data for a user", function () {
                 var soID;
                 var gID;
@@ -868,14 +868,16 @@ describe("mongoose", function () {
                         .then(function () {
                             return db.removeSensorData(soID, streamID)
                         }).then(function () {
+                            return db.removeSensorData(soID, streamID2)
+                        }).then(function () {
                             return db.removeServiceObject(soID)
                         }).should.be.fulfilled;
                 });
 
                 it("Should successfully get all sensor data for a stream", function () {
-                    return db.getAllSensorDataForUser(ownerID).then(function (data) {
-                        expect(data[0].channels[3]).to.not.equal(data[1].channels[3]);
-                        expect(data[0].channels[0].value).to.equal(data[1].channels[0].value);
+                    return db.getSensorDataForUser(ownerID).then(function (data) {
+                        expect(data[0].streamID).to.not.equal(data[1].streamID);
+                        expect(data[0]).to.not.equal(data[1]);
                     }).should.be.fulfilled;
                 });
             });
