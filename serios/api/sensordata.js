@@ -39,21 +39,30 @@ function add(req, res) {
 
 function remove(req, res) {
     var authorization = req.headers.authorization;
+    var soID = req.params.soID;
+    var streamID = req.params.streamID;
+    var ownerID;
 
     checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function () {
-        return removeSensorData(req.params.soID, req.params.streamID);
+    }).then(function (userID) {
+        ownerID = userID;
+        return removeSensorData(soID, streamID);
     }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
     }).then(function () {
-        res.status(204);
+        res.status(204).json({msg: "Sensor Data successfully removed."});
     });
 }
 
 function getSensorDataForStream(req, res) {
     var authorization = req.headers.authorization;
     var options = req.params.options;
+
+    if (options) {
+        res.status(501).json({msg: "Options are not yet implemented"});
+        return;
+    }
 
     checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
@@ -91,7 +100,7 @@ function getSensorDataForUser(req, res) {
  * @returns {Promise}
  */
 var addSensorData = function (ownerID, soID, streamID, data) {
-    storage.addSensorData(ownerID, soID, streamID, data);
+    return storage.addSensorData(ownerID, soID, streamID, data);
 };
 
 /**
@@ -102,7 +111,7 @@ var addSensorData = function (ownerID, soID, streamID, data) {
  * @returns {Promise}
  */
 var removeSensorData = function (soID, streamID) {
-    storage.removeSensorData(soID, streamID);
+    return storage.removeSensorData(soID, streamID);
 };
 
 /**
@@ -114,7 +123,7 @@ var removeSensorData = function (soID, streamID) {
  * @returns {Promise}
  */
 var getAllSensorDataForStream = function (soID, streamID, options) {
-    storage.getSensorDataForStream(soID, streamID, options);
+    return storage.getSensorDataForStream(soID, streamID, options);
 };
 
 /**
@@ -125,7 +134,7 @@ var getAllSensorDataForStream = function (soID, streamID, options) {
  * @returns {Promise}
  */
 var getAllSensorDataForUser = function (userID, options) {
-    storage.getSensorDataForUser(userID, options);
+    return storage.getSensorDataForUser(userID, options);
 };
 
 /**
