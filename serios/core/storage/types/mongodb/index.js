@@ -140,6 +140,14 @@ function updateServiceObject(soID, newSo) {
         new: true
     };
 
+    function validateFindAndUpdateById(soID, newSo) {
+        return validateServiceObjectSyntax(newSo).then(function () {
+            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+        }).then(function (updatedSO) {
+            return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+        });
+    }
+
     return ServiceObject.findById(soID).lean().exec().then(function (oldSo) {
         if (!oldSo) {
             return Promise.reject(new Error("Could not find Service Object"));
@@ -148,9 +156,7 @@ function updateServiceObject(soID, newSo) {
         var options;
         if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
             if (gateway.gatewayID && oldSo.gatewayID == gateway.gatewayID) {
-                return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
-                    return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
-                });
+                return validateFindAndUpdateById(soID, newSo);
             } else if (gateway.gatewayID) {
                 options = {
                     _id: gateway.gatewayID
@@ -165,9 +171,7 @@ function updateServiceObject(soID, newSo) {
                     if (foundGateway) {
                         newSo.gatewayID = foundGateway._id;
                         delete newSo.gateway;
-                        return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
-                            return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
-                        });
+                        return validateFindAndUpdateById(soID, newSo);
                     } else {
                         return Promise.reject(new Error("Error! Could not find Gateway!"));
                     }
@@ -180,17 +184,13 @@ function updateServiceObject(soID, newSo) {
                 return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                     if (foundGateway) {
                         newSo.gatewayID = foundGateway._id;
-                        return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
-                            return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
-                        });
+                        return validateFindAndUpdateById(soID, newSo);
                     } else {
                         // no existing gateway found? create a new one with the given information
                         gateway.ownerID = newSo.ownerID;
                         return addGateway(gateway).then(function (id) {
                             newSo.gatewayID = id;
-                            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
-                                return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
-                            });
+                            return validateFindAndUpdateById(soID, newSo);
                         });
                     }
                 });
