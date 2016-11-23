@@ -76,10 +76,11 @@ module.exports = {
  * Initializes the storage.
  *
  * @param settings the settings for the storage.
+ * @return {Promise}
  */
 function init(settings) {
     var type = settings.type;
     storage = require("./types/" + type);
-    storage.init(settings);
+    return storage.init(settings);
 }
 

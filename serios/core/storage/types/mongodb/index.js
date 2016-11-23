@@ -42,9 +42,18 @@ module.exports = {
  * Initializes the whole database.
  *
  * @param settings the settings for the mongodb database.
+ * @return {Promise}
  */
 function init(settings) {
-    mongoose.connect(settings.location);
+    return new Promise(function (resolve, reject) {
+        mongoose.connect(settings.location, function (err) {
+            if (err) {
+                reject(err + " Did you forgot to start the mongo demon? Start it with `mongod`.");
+            } else {
+                resolve();
+            }
+        });
+    });
 }
 
 /**
@@ -131,7 +140,7 @@ function updateServiceObject(soID, newSo) {
         new: true
     };
 
-    return ServiceObject.findById(soID).exec().then(function (oldSo) {
+    return ServiceObject.findById(soID).lean().exec().then(function (oldSo) {
         if (!oldSo) {
             return Promise.reject(new Error("Could not find Service Object"));
         }
@@ -168,7 +177,7 @@ function updateServiceObject(soID, newSo) {
                     name: gateway.name,
                     URL: gateway.URL
                 };
-                return Gateway.findOne(options).exec().then(function (foundGateway) {
+                return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                     if (foundGateway) {
                         newSo.gatewayID = foundGateway._id;
                         return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
@@ -237,17 +246,15 @@ function removeServiceObject(soID) {
  * @returns {Promise} Promise with an array of Service Objects.
  */
 function getAllSoForGateway(gatewayID) {
-    return new Promise(function (resolve, reject) {
-        ServiceObject.find({gatewayID: gatewayID}).lean().exec(function (err, sos) {
-            if (err || sos.length === 0) {
-                reject(err);
-            } else {
-                var soIDs = sos.map(function (item) {
-                    return item._id;
-                });
-                resolve(soIDs);
-            }
-        });
+    return ServiceObject.find({gatewayID: gatewayID}).lean().exec().then(function (sos) {
+        if (!sos.length) {
+            return Promise.reject(new Error("Could not find Service Objects for Gateway"));
+        } else {
+            var soIDs = sos.map(function (item) {
+                return item._id;
+            });
+            return Promise.resolve(soIDs);
+        }
     });
 }
 
@@ -258,17 +265,15 @@ function getAllSoForGateway(gatewayID) {
  * @returns {Promise} Promise with an array of Service Objects.
  */
 function getAllSoForUser(userID) {
-    return new Promise(function (resolve, reject) {
-        ServiceObject.find({ownerID: userID}).lean().exec(function (err, sos) {
-            if (err || sos.length === 0) {
-                reject(err);
-            } else {
-                var soIDs = sos.map(function (item) {
-                    return item._id;
-                });
-                resolve(soIDs);
-            }
-        });
+    return ServiceObject.find({ownerID: userID}).lean().exec().then(function (sos) {
+        if (!sos.length) {
+            return Promise.reject(new Error("Could not find Service Objects for User"));
+        } else {
+            var soIDs = sos.map(function (item) {
+                return item._id;
+            });
+            return Promise.resolve(soIDs);
+        }
     });
 }
 
@@ -322,7 +327,15 @@ function updateGateway(gatewayID, gateway) {
  * @returns {Promise} whether the Gateway exists or not.
  */
 function getGateway(gatewayID) {
-    return Gateway.findById(gatewayID).select("id gatewayID URL port").lean().exec();
+    return Gateway.findById(gatewayID).select("id gatewayID URL port").lean().exec().then(function (foundGateway) {
+        return new Promise(function (resolve, reject) {
+            if (!foundGateway) {
+                reject(new Error("Could not find gateway."));
+            } else {
+                resolve(foundGateway);
+            }
+        });
+    });
 }
 
 /**
@@ -422,15 +435,11 @@ function addSensorData(ownerID, soID, streamID, data) {
  * @returns {Promise} whether removing was successful or not.
  */
 function removeSensorData(soID, streamID) {
-    return SensorData.find({soID: soID, streamID: streamID}).exec().then(function (foundSDs) {
-        if (!foundSDs || foundSDs.length === 0) {
-            return Promise.reject(new Error("Could not find sensor data for given oarameters"));
+    return SensorData.find({soID: soID, streamID: streamID}).lean().exec().then(function (foundSDs) {
+        if (!foundSDs.length) {
+            return Promise.reject(new Error("Could not find sensor data for given parameters"));
         } else {
-            var proms = [];
-            foundSDs.forEach(function (data) {
-                proms.push(data.remove());
-            });
-            return Promise.all(proms);
+            return SensorData.remove({soID: soID, streamID: streamID}).exec();
         }
     });
 }
@@ -448,7 +457,7 @@ function getAllSensorDataForStream(soID, streamID, options) {
         return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
     }).then(function (data) {
         return new Promise(function (resolve, reject) {
-            if (data.length === 0) {
+            if (!data.length) {
                 reject();
             } else {
                 resolve(data);
@@ -467,7 +476,7 @@ function getAllSensorDataForUser(userID, options) {
     // TODO Phil 18/11/16: implement options support
     return SensorData.find({ownerID: userID}).lean().exec().then(function (data) {
         return new Promise(function (resolve, reject) {
-            if (data.length === 0) {
+            if (!data.length) {
                 reject();
             } else {
                 resolve(data);
