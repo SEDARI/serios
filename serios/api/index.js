@@ -62,10 +62,10 @@ function init(_server, _core) {
 
 
     // API for Sensor Data
+    app.get("/api/:soID/streams/:streamID/:options?", sensorData.getDataForStream);
     app.put("/api/:soID/streams/:streamID", sensorData.add);
-    app.get("/api/:soID/streams/:streamID/:options", sensorData.getDataForStream);
     // TODO Phil 18/11/16: maybe add getting sensor data for gateway
-    app.get("/api/data/:options", sensorData.getDataForUser);
+    app.get("/api/data/:options?", sensorData.getDataForUser);
     app.delete("/api/:soID/streams/:streamID", sensorData.remove);
 
     // API for Gateways
