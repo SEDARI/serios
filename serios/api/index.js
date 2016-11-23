@@ -57,7 +57,16 @@ function init(_server, _core) {
     app.use(bodyParser.urlencoded({extended: true}));
     app.use(errorHandler);
 
+    // routes have to be ordered from more to least specific
     app.get("/api/version", getVersion);
+
+
+    // API for Sensor Data
+    app.put("/api/:soID/streams/:streamID", sensorData.add);
+    app.get("/api/:soID/streams/:streamID/:options", sensorData.getDataForStream);
+    // TODO Phil 18/11/16: maybe add getting sensor data for gateway
+    app.get("/api/data/:options", sensorData.getDataForUser);
+    app.delete("/api/:soID/streams/:streamID", sensorData.remove);
 
     // API for Gateways
     app.post("/api/gateway", gateway.add);
@@ -68,22 +77,16 @@ function init(_server, _core) {
     app.get("/api/gateway", gateway.getAllGatewaysForUser);
 
     // API for Service Objects
+    app.get("/api/sos", serviceObject.getAllSoForUser);
+    app.get("/api/:gatewayID/sos", serviceObject.getAllSoForGateway);
+
     app.post("/api/", serviceObject.add);
     app.put("/api/:soID", serviceObject.update);
-    app.get("/api/:soID", serviceObject.get);
     app.delete("/api/:soID", serviceObject.remove);
-
-    app.get("/api", serviceObject.getAllSoForUser);
-    app.get("/api/:gateway/sos", serviceObject.getAllSoForGateway);
-
-    // API for Sensor Data
-    app.put("/api/:soID/streams/:streamID", sensorData.add);
-    app.get("/api/:soID/streams/:streamID/:options", sensorData.getDataForStream);
-    // TODO Phil 18/11/16: maybe add getting sensor data for gateway
-    app.get("/api/data/:options", sensorData.getDataForUser);
-    app.delete("/api/:soID/streams/:streamID", sensorData.remove);
+    app.get("/api/:soID", serviceObject.get);
 
     core.app.use(app);
+    return Promise.resolve();
 }
 
 function getVersion(req, res) {
@@ -95,7 +98,11 @@ function start() {
 }
 
 function stop() {
-    return when.resolve();
+    return new Promise(function (resolve, reject) {
+        server.close(function () {
+            resolve();
+        });
+    });
 }
 
 module.exports = {
