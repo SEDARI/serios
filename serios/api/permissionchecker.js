@@ -11,8 +11,15 @@ module.exports = {
             if (authorization_token) {
                 resolve(authorization_token);
             } else {
-                reject();
+                reject(new AuthorizationError("Authorization failed."));
             }
         });
-    }
+    },
+    AuthorizationError : AuthorizationError
 };
+function AuthorizationError(message) {
+    this.name = "AuthorizationError";
+    this.message = (message || "");
+}
+AuthorizationError.prototype = new Error();
+
