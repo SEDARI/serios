@@ -308,11 +308,9 @@ describe("mongoose", function () {
                 });
 
                 it("Should successfully update service object", function () {
-                    return db.updateServiceObject(soID, soWithoutGateway).then(function (updatedSO) {
-                        expect(soID).to.equal(updatedSO._id);
-                        expect(soWithoutGateway.name).to.deep.equal(updatedSO.name);
-                        expect(soWithoutGateway.description).to.deep.equal(updatedSO.description);
-                        expect(soWithoutGateway.streams.length).to.equal(updatedSO.streams.length);
+                    return db.updateServiceObject(soID, soWithoutGateway).then(function (res) {
+                        expect(res.soID).to.equal(soID);
+                        expect(res.gatewayID).to.equal(undefined);
                     }).should.be.fulfilled;
                 });
 
