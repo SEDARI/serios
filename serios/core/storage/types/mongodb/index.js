@@ -8,6 +8,9 @@ var Gateway = require("../mongodb/models").Gateway;
 var ServiceObject = require("../mongodb/models").ServiceObject;
 var SensorData = require("../mongodb/models").SensorData;
 
+var NotFoundError = require("../../../storage").NotFoundError;
+var NoDataFoundError = require("../../../storage").NoDataFoundError;
+
 module.exports = {
     init: init,
 
@@ -48,7 +51,7 @@ function init(settings) {
     return new Promise(function (resolve, reject) {
         mongoose.connect(settings.location, function (err) {
             if (err) {
-                reject(err + " Did you forgot to start the mongo demon? Start it with `mongod`.");
+                reject(err + "\nDid you forgot to start the mongo demon? Start it with `mongod`.");
             } else {
                 resolve();
             }
@@ -101,7 +104,7 @@ function addServiceObject(newSo) {
                     delete newSo.gateway;
                     return ServiceObject.saveSoGetSoId(new ServiceObject(newSo));
                 } else {
-                    return Promise.reject(new Error("Error! Could not find Gateway!"));
+                    return Promise.reject(new NotFoundError("Error! Could not find Gateway!"));
                 }
             });
         } else {
@@ -150,7 +153,7 @@ function updateServiceObject(soID, newSo) {
 
     return ServiceObject.findById(soID).lean().exec().then(function (oldSo) {
         if (!oldSo) {
-            return Promise.reject(new Error("Could not find Service Object"));
+            return Promise.reject(new NotFoundError("Could not find Service Object"));
         }
         var gateway = newSo.gateway;
         var options;
@@ -173,7 +176,7 @@ function updateServiceObject(soID, newSo) {
                         delete newSo.gateway;
                         return validateFindAndUpdateById(soID, newSo);
                     } else {
-                        return Promise.reject(new Error("Error! Could not find Gateway!"));
+                        return Promise.reject(new NoDataFoundError("Error! Could not find Gateway!"));
                     }
                 });
             } else {
@@ -197,7 +200,7 @@ function updateServiceObject(soID, newSo) {
             }
         } else {
             delete newSo.gatewayID;
-            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+            return validateFindAndUpdateById(soID, newSo);
         }
     });
 
@@ -211,13 +214,11 @@ function updateServiceObject(soID, newSo) {
  */
 function getServiceObject(soID) {
     return ServiceObject.findById(soID).select("id gatewayID name description streams").exec().then(function (mod) {
-        return new Promise(function (resolve, reject) {
-            if (!mod) {
-                reject();
-            } else {
-                resolve(mod);
-            }
-        });
+        if (!mod) {
+            return Promise.reject(new NotFoundError("Could not find service object for given parameters"));
+        } else {
+            return Promise.resolve(mod);
+        }
     });
 }
 
@@ -228,14 +229,12 @@ function getServiceObject(soID) {
  * @returns {Promise} whether removing was successful or not.
  */
 function removeServiceObject(soID) {
-    return new Promise(function (resolve, reject) {
-        ServiceObject.findByIdAndRemove(soID, function (err, foundSO) {
-            if (err || !foundSO) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+    return ServiceObject.findByIdAndRemove(soID).lean().exec().then(function (foundSO) {
+        if (!foundSO) {
+            return Promise.reject(new NotFoundError("Could not find Service Object for given parameters"));
+        } else {
+            return Promise.resolve();
+        }
     });
 }
 
@@ -246,9 +245,15 @@ function removeServiceObject(soID) {
  * @returns {Promise} Promise with an array of Service Objects.
  */
 function getAllSoForGateway(gatewayID) {
-    return ServiceObject.find({gatewayID: gatewayID}).lean().exec().then(function (sos) {
+    return Gateway.findById(gatewayID).lean().exec().then(function (foundSO) {
+        if (!foundSO) {
+            return Promise.reject(new NotFoundError("Could not find Gateway"));
+        }
+    }).then(function () {
+        return ServiceObject.find({gatewayID: gatewayID}).lean().exec();
+    }).then(function (sos) {
         if (!sos.length) {
-            return Promise.reject(new Error("Could not find Service Objects for Gateway"));
+            return Promise.reject(new NoDataFoundError("Could not find Service Objects for Gateway"));
         } else {
             var soIDs = sos.map(function (item) {
                 return item._id;
@@ -267,7 +272,7 @@ function getAllSoForGateway(gatewayID) {
 function getAllSoForUser(userID) {
     return ServiceObject.find({ownerID: userID}).lean().exec().then(function (sos) {
         if (!sos.length) {
-            return Promise.reject(new Error("Could not find Service Objects for User"));
+            return Promise.reject(new NoDataFoundError("Could not find Service Objects for User"));
         } else {
             var soIDs = sos.map(function (item) {
                 return item._id;
@@ -307,16 +312,15 @@ function addGateway(newGateway) {
  * @returns {Promise} whether updating was successful or not.
  */
 function updateGateway(gatewayID, gateway) {
-    return new Promise(function (resolve, reject) {
-        Gateway.findByIdAndUpdate(gatewayID, gateway, {runValidators: true, new: true}, function (err, updatedGateway) {
-            if (err) {
-                reject(err);
-            } else if (!updatedGateway) {
-                reject(new Error("Could not find gateway."));
-            } else {
-                resolve(updatedGateway);
-            }
-        });
+    return Gateway.findByIdAndUpdate(gatewayID, gateway, {
+        runValidators: true,
+        new: true
+    }).lean().exec().then(function (updatedGateway) {
+        if (!updatedGateway) {
+            return Promise.reject(new NotFoundError("Could not find gateway."));
+        } else {
+            return Promise.resolve(updatedGateway);
+        }
     });
 }
 
@@ -328,13 +332,11 @@ function updateGateway(gatewayID, gateway) {
  */
 function getGateway(gatewayID) {
     return Gateway.findById(gatewayID).select("id gatewayID URL port").lean().exec().then(function (foundGateway) {
-        return new Promise(function (resolve, reject) {
-            if (!foundGateway) {
-                reject(new Error("Could not find gateway."));
-            } else {
-                resolve(foundGateway);
-            }
-        });
+        if (!foundGateway) {
+            return Promise.reject(new NotFoundError("Could not find gateway."));
+        } else {
+            return Promise.resolve(foundGateway);
+        }
     });
 }
 
@@ -349,7 +351,7 @@ function getGateway(gatewayID) {
 function removeGateway(gatewayID) {
     return Gateway.findByIdAndRemove(gatewayID).lean().exec().then(function (removedGateway) {
         if (!removedGateway) {
-            return Promise.reject();
+            return Promise.reject(new NotFoundError("Could not find gateway."));
         } else {
             return ServiceObject.update({gatewayID: gatewayID}, {gatewayID: undefined}, {multi: true}).exec();
         }
@@ -363,17 +365,15 @@ function removeGateway(gatewayID) {
  * @returns {Promise} Promise with an array of Gateways.
  */
 function getAllGatewaysForUser(userID) {
-    return new Promise(function (resolve, reject) {
-        Gateway.find({ownerID: userID}).select("id").exec(function (err, gateways) {
-            if (err || gateways.length === 0) {
-                reject(err);
-            } else {
-                var gws = gateways.map(function (item) {
-                    return item._id;
-                });
-                resolve(gws);
-            }
-        });
+    return Gateway.find({ownerID: userID}).select("id").lean().exec().then(function (gateways) {
+        if (!gateways.length) {
+            return Promise.reject(new NoDataFoundError("Could not find gateways for given parameters"));
+        } else {
+            var gws = gateways.map(function (item) {
+                return item._id;
+            });
+            return Promise.resolve(gws);
+        }
     });
 }
 
@@ -385,10 +385,9 @@ function getAllGatewaysForUser(userID) {
  * @returns {Promise} whether the given parameters exist in the database or not.
  */
 function validateSoIdAndStreamId(soID, streamID) {
-    return SensorData.validateSoID(soID)
-        .then(function () {
-            return SensorData.validateStreamID(soID, streamID);
-        });
+    return SensorData.validateSoID(soID).then(function () {
+        return SensorData.validateStreamID(soID, streamID);
+    });
 }
 
 /**
@@ -437,7 +436,7 @@ function addSensorData(ownerID, soID, streamID, data) {
 function removeSensorData(soID, streamID) {
     return SensorData.find({soID: soID, streamID: streamID}).lean().exec().then(function (foundSDs) {
         if (!foundSDs.length) {
-            return Promise.reject(new Error("Could not find sensor data for given parameters"));
+            return Promise.reject(new NoDataFoundError("Could not find sensor data for given parameters"));
         } else {
             return SensorData.remove({soID: soID, streamID: streamID}).exec();
         }
@@ -454,17 +453,14 @@ function removeSensorData(soID, streamID) {
  */
 function getSensorDataForStream(soID, streamID, options) {
     // TODO Phil 18/11/16: implement options support
-    return validateSoIdAndStreamId(soID, streamID).then(function () {
-        return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
-    }).then(function (data) {
-        return new Promise(function (resolve, reject) {
+    return SensorData.find({soID: soID, streamID: streamID}).lean().exec()
+        .then(function (data) {
             if (!data.length) {
-                reject();
+                return Promise.reject(new NoDataFoundError("Could not find sensor data for given parameters"));
             } else {
-                resolve(data);
+                return Promise.resolve(data);
             }
         });
-    });
 }
 
 /**
@@ -477,12 +473,10 @@ function getSensorDataForStream(soID, streamID, options) {
 function getSensorDataForUser(userID, options) {
     // TODO Phil 18/11/16: implement options support
     return SensorData.find({ownerID: userID}).lean().exec().then(function (data) {
-        return new Promise(function (resolve, reject) {
-            if (!data.length) {
-                reject();
-            } else {
-                resolve(data);
-            }
-        });
+        if (!data.length) {
+            return Promise.reject(new NoDataFoundError("Could not find sensor data for given parameters"));
+        } else {
+            return Promise.resolve(data);
+        }
     });
 }
