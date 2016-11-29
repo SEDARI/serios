@@ -3,6 +3,8 @@
  */
 var mongoose = require("mongoose");
 
+var NotFoundError = require("../../index").NotFoundError;
+
 /**
  * Used to generate uuIDs.
  */
@@ -276,7 +278,7 @@ function SensorDataSchema() {
         return ServiceObject.findById(soID).lean().exec().then(function (so) {
             return new Promise(function (resolve, reject) {
                 if (!so) {
-                    reject(new Error("Could not find Service Object"));
+                    reject(new NotFoundError("Could not find Service Object"));
                 } else {
                     resolve();
                 }
@@ -295,7 +297,7 @@ function SensorDataSchema() {
         return ServiceObject.findById(soID).lean().exec().then(function (so) {
             return new Promise(function (resolve, reject) {
                 if (!so) {
-                    return reject(new Error("Could not find Service Object"));
+                    return reject(new NotFoundError("Could not find Service Object"));
                 } else {
                     var array = so.streams.map(function (stream) {
                         return stream.name;
