@@ -1,7 +1,7 @@
 process.env.NODE_ENV = 'test';
 
 if (!global.Promise) {
-  global.Promise = require('q');
+    global.Promise = require('q');
 }
 
 var http = require("http");
@@ -583,7 +583,7 @@ describe("API", function () {
 
                     });
             });
-            it("Should get all Service Objects for a gateway successfully", function () {
+            it("Should reject getting all Service Objects for a gateway successfully as there are none", function () {
                 return chai.request(app)
                     .get(url_prefix + "/" + gID + "/sos")
                     .set("Authorization", userID)
@@ -966,23 +966,24 @@ describe("API", function () {
             });
 
             after(function () {
-                return chai.request(app)
-                    .del(url_prefix + "/" + soID)
-                    .set("Authorization", userID)
-                    .set("Content-Type", "application/json")
-                    .then(function (res) {
-                        expect(res).to.have.status(200);
-                    }).then(function () {
-                        // TODO Phil 23/11/16: test removing sensor data
-                        // if (added) {
-                        //     return chai.request(app)
-                        //         .del(url_prefix + "/" + soID + "/" + streamID)
-                        //         .set("Authorization", userID)
-                        //         .then(function (res) {
-                        //             expect(res).to.have.status(200);
-                        //         });
-                        // }
-                    });
+                return Promise.resolve().then(function () {
+                    return chai.request(app)
+                        .del(url_prefix + "/" + soID)
+                        .set("Authorization", userID)
+                        .set("Content-Type", "application/json")
+                        .then(function (res) {
+                            expect(res).to.have.status(200);
+                        });
+                }).then(function () {
+                    if (added) {
+                        return chai.request(app)
+                            .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(204);
+                            });
+                    }
+                });
             });
 
             it("Should accept request and store sensor data", function () {
@@ -1005,7 +1006,6 @@ describe("API", function () {
                     .send(badSyntaxSensorData)
                     .catch(function (res) {
                         expect(res).to.have.status(400);
-                        added = false;
                     });
             });
 
@@ -1016,7 +1016,6 @@ describe("API", function () {
                     .send(sensordata)
                     .catch(function (res) {
                         expect(res).to.have.status(403);
-                        added = false;
                     });
             });
         });
@@ -1092,21 +1091,19 @@ describe("API", function () {
                     });
             });
 
-            // TODO Phil 22/11/16: This test case doesn't work yet, as there is still a problem with chaining promises.
-            // it("Should reject request due to missing authentication", function () {
-            //     return chai.request(app)
-            //         .del(url_prefix + "/" + soID + "/streams/" + streamID)
-            //         .catch(function (res) {
-            //             expect(res).to.have.status(403);
-            //             removed = false;
-            //         });
-            // });
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(app)
+                    .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                        removed = false;
+                    });
+            });
         });
 
         describe("Doesn't remove Sensor Data for Stream as it is not added", function () {
             var soID;
             var streamID;
-            var removed = false;
             before(function () {
                 return chai.request(app)
                     .post(url_prefix)
@@ -1128,29 +1125,17 @@ describe("API", function () {
                     .set("Content-Type", "application/json")
                     .then(function (res) {
                         expect(res).to.have.status(200);
-
-                        if (!removed) {
-                            return chai.request(app)
-                                .del(url_prefix + "/" + soID + "/streams/" + streamID)
-                                .set("Authorization", userID)
-                                .then(function (res) {
-                                    expect(res).to.have.status(204);
-                                });
-                        }
                     });
             });
 
-            // TODO Phil 22/11/16: This test case doesn't work yet, as there is still a problem with chaining promises.
-            // it("Should reject request due to missing sensor data", function () {
-            //     chai.request(app)
-            //         .del(url_prefix + "/" + soID + "/streams/" + streamID)
-            //         .set("Authorization", userID)
-            //         .catch(function (res) {
-            //             expect(res).to.have.status(400);
-            //             removed = false;
-            //         });
-            // });
-
+            it("Should reject request due to missing sensor data", function () {
+                chai.request(app)
+                    .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
         });
 
         describe("get Sensor Data", function () {
@@ -1261,5 +1246,6 @@ describe("API", function () {
             });
         });
     });
-});
+})
+;
 
