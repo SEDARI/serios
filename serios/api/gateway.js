@@ -3,9 +3,14 @@
  *
  * This includes API logic as well as calling the storage.
  */
-
 var checkPermission = require("./permissionchecker").checkPermission;
+var AuthorizationError = require("./permissionchecker").AuthorizationError;
+
 var storage = require("../core/storage");
+var NotFoundError = require("../core/storage").NotFoundError;
+var NoDataFoundError = require("../core/storage").NoDataFoundError;
+
+var ValidationError = require("mongoose").Error.ValidationError;
 
 module.exports = {
     add: add,
@@ -20,19 +25,21 @@ function add(req, res) {
     var gateway = req.body;
     var authorization = req.headers.authorization;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function (userID) {
+    return checkPermission(authorization).then(function (userID) {
         gateway.ownerID = userID;
         return validateSyntax(gateway);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
     }).then(function () {
         return addGateway(gateway);
-    }).catch(function () {
-        res.status(507).json({msg: "Insufficient Storage. Could not save Gateway."});
     }).then(function (gatewayID) {
         res.status(200).json({gatewayID: gatewayID, msg: "OK. Gateway was added."});
+    }).catch(function (err) {
+        if (err instanceof AuthorizationError) {
+            res.status(403).json({msg: "Forbidden. Access was denied!"});
+        } else if (err instanceof ValidationError) {
+            res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
+        } else {
+            res.status(500).json({msg: "Unknown Internal Server error.\n Error: " + err});
+        }
     });
 }
 
@@ -41,19 +48,23 @@ function update(req, res) {
     var authorization = req.headers.authorization;
     var gatewayID = req.params.gatewayID;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function (userID) {
+    return checkPermission(authorization).then(function (userID) {
         gateway.ownerID = userID;
         return validateSyntax(gateway);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
     }).then(function () {
         return updateGateway(gatewayID, gateway);
-    }).catch(function () {
-        res.status(507).json({msg: "Insufficient Storage. Could not update Gateway."});
     }).then(function () {
         res.status(200).json({msg: "OK. Gateway was modified."});
+    }).catch(function (err) {
+        if (err instanceof AuthorizationError) {
+            res.status(403).json({msg: "Forbidden. Access was denied!"});
+        } else if (err instanceof ValidationError) {
+            res.status(400).json({msg: "Bad Request. Bad syntax used for Gateway."});
+        } else if (err instanceof NotFoundError) {
+            res.status(400).json({msg: "Bad Request: Could not find Gateway."});
+        } else {
+            res.status(500).json({msg: "Unknown Internal Server error.\n Error: " + err});
+        }
     });
 }
 
@@ -61,14 +72,18 @@ function get(req, res) {
     var authorization = req.headers.authorization;
     var gatewayID = req.params.gatewayID;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function () {
+    return checkPermission(authorization).then(function () {
         return getGateway(gatewayID);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Could not find Gateway."});
     }).then(function (gateway) {
         res.status(200).json(gateway);
+    }).catch(function (err) {
+        if (err instanceof AuthorizationError) {
+            res.status(403).json({msg: "Forbidden. Access was denied!"});
+        } else if (err instanceof NotFoundError) {
+            res.status(400).json({msg: "Bad Request: Could not find Gateway."});
+        } else {
+            res.status(500).json({msg: "Unknown Internal Server error.\n Error: " + err});
+        }
     });
 }
 
@@ -76,28 +91,36 @@ function remove(req, res) {
     var authorization = req.headers.authorization;
     var gatewayID = req.params.gatewayID;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function () {
+    return checkPermission(authorization).then(function () {
         return removeGateway(gatewayID);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Could not find Gateway."});
     }).then(function () {
         res.status(200).json({msg: "OK. Gateway was removed."});
+    }).catch(function (err) {
+        if (err instanceof AuthorizationError) {
+            res.status(403).json({msg: "Forbidden. Access was denied!"});
+        } else if (err instanceof NotFoundError) {
+            res.status(400).json({msg: "Bad Request. Could not find Gateway."});
+        } else {
+            res.status(500).json({msg: "Unknown Internal Server error.\n Error: " + err});
+        }
     });
 }
 
 function getAllGatewaysForUser(req, res) {
     var authorization = req.headers.authorization;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function (userID) {
+    return checkPermission(authorization).then(function (userID) {
         return allGatewaysForUser(userID);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Could not find Gateways."});
     }).then(function (gateways) {
         res.status(200).json(gateways);
+    }).catch(function (err) {
+        if (err instanceof AuthorizationError) {
+            res.status(403).json({msg: "Forbidden. Access was denied!"});
+        } else if (err instanceof NoDataFoundError) {
+            res.status(400).json({msg: "Bad Request. Could not find Gateways for User"});
+        } else {
+            res.status(500).json({msg: "Unknown Internal Server error.\n Error: " + err});
+        }
     });
 }
 
