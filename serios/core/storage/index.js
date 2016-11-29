@@ -11,6 +11,10 @@ var storage = null;
 module.exports = {
     init: init,
 
+    // errors
+    NotFoundError: NotFoundError,
+    NoDataFoundError: NoDataFoundError,
+
     // service objects
     validateServiceObjectSyntax: function (so) {
         return storage.validateServiceObjectSyntax(so);
@@ -84,3 +88,14 @@ function init(settings) {
     return storage.init(settings);
 }
 
+function NotFoundError(message) {
+    this.name = "NotFoundError";
+    this.message = (message || "");
+}
+NotFoundError.prototype = new Error();
+
+function NoDataFoundError(message) {
+    this.name = "NoDataFoundError";
+    this.message = (message || "");
+}
+NoDataFoundError.prototype = new Error();
