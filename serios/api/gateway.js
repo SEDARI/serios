@@ -21,6 +21,22 @@ module.exports = {
     getAllGatewaysForUser: getAllGatewaysForUser
 };
 
+/**
+ * Handles a HTTP request for adding a Gateway.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * the gateway is validated,
+ * and the gateway is saved to the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function add(req, res) {
     var gateway = req.body;
     var authorization = req.headers.authorization;
@@ -43,6 +59,22 @@ function add(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for updating a Gateway.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * the gateway is validated,
+ * and the gateway is updated in the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function update(req, res) {
     var gateway = req.body;
     var authorization = req.headers.authorization;
@@ -53,8 +85,8 @@ function update(req, res) {
         return validateSyntax(gateway);
     }).then(function () {
         return updateGateway(gatewayID, gateway);
-    }).then(function () {
-        res.status(200).json({msg: "OK. Gateway was modified."});
+    }).then(function (gatewayID) {
+        res.status(200).json({gatewayID: gatewayID, msg: "OK. Gateway was modified."});
     }).catch(function (err) {
         if (err instanceof AuthorizationError) {
             res.status(403).json({msg: "Forbidden. Access was denied!"});
@@ -68,6 +100,21 @@ function update(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting the description of a Gateway.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the gateway is queried from the storage and returned.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function get(req, res) {
     var authorization = req.headers.authorization;
     var gatewayID = req.params.gatewayID;
@@ -87,6 +134,21 @@ function get(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for removing Gateways.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the gateway is removed from the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function remove(req, res) {
     var authorization = req.headers.authorization;
     var gatewayID = req.params.gatewayID;
@@ -106,6 +168,21 @@ function remove(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting all Gateways for a User.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the gateways are queried from the storage and returned.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function getAllGatewaysForUser(req, res) {
     var authorization = req.headers.authorization;
 

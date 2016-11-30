@@ -60,10 +60,11 @@ function init(settings) {
 }
 
 /**
- * Validates if a given JSON has the correct Service Object syntax.
+ * Validates if a given object has the correct syntax for a Service Object.
  *
- * @param so the given JSON
- * @returns {Promise} whether the given JSON has correct Service Object syntax or not.
+ * @param so the given object that represents a service object.
+ * @throws {mongoose.Error.ValidationError} Failed validation.
+ * @returns {Promise} a promise to a resolved empty object or an error.
  */
 function validateServiceObjectSyntax(so) {
     return new ServiceObject(so).validate();
@@ -76,7 +77,8 @@ function validateServiceObjectSyntax(so) {
  * no gateway information will be saved.
  *
  * @param newSo the Service Object that is added.
- * @returns {Promise} whether adding was successful or not.
+ * @throws {NotFoundError} Could not find Gateway.
+ * @returns {Promise} A Promise to either an object with {soID, gatewayID} properties or an error.
  */
 function addServiceObject(newSo) {
     var gateway = newSo.gateway;
@@ -130,11 +132,13 @@ function addServiceObject(newSo) {
 }
 
 /**
- * Update a Service Object with given values in the database.
+ * Updates a Service Object with given values in the database.
  *
  * @param soID the identifier of the service object that is updated.
  * @param newSo the new values for the service object.
- * @returns {Promise} whether updating was successful or not.
+ * @throws {NotFoundError} Could not find Service Object
+ * @throws {NoDataFoundError} Could not find Gateway.
+ * @returns {Promise} A Promise to either an object with {soID, gatewayID} properties or an error.
  */
 function updateServiceObject(soID, newSo) {
     var updateOptions = {
@@ -207,10 +211,11 @@ function updateServiceObject(soID, newSo) {
 }
 
 /**
- * Get the description of a Service Object from the database.
+ * Gets the description of a Service Object from the database.
  *
  * @param soID the identifier of the service object that is requested.
- * @returns {Promise} whether the Service Object exits or not.
+ * @throws {NotFoundError} Could not find Service Object.
+ * @returns {Promise} A Promise to either the requested service object or an error.
  */
 function getServiceObject(soID) {
     return ServiceObject.findById(soID).select("id gatewayID name description streams").exec().then(function (mod) {
@@ -226,7 +231,8 @@ function getServiceObject(soID) {
  * Removes a Service Object for a given soID from the database.
  *
  * @param soID the given soID used to identify the Service Object.
- * @returns {Promise} whether removing was successful or not.
+ * @throws {NotFoundError} Could not find Service Object.
+ * @returns {Promise} A Promise to either a resolved empty object or an error.
  */
 function removeServiceObject(soID) {
     return ServiceObject.findByIdAndRemove(soID).lean().exec().then(function (foundSO) {
@@ -242,7 +248,9 @@ function removeServiceObject(soID) {
  * Returns an array of all ServiceObject for a given gateway.
  *
  * @param gatewayID the given gateway.
- * @returns {Promise} Promise with an array of Service Objects.
+ * @throws {NotFoundError} Could not find Gateway.
+ * @throws {NoDataFoundError} Could not find Service Objects for Gateway.
+ * @returns {Promise} A Promise to either an array of service objects or an error.
  */
 function getAllSoForGateway(gatewayID) {
     return Gateway.findById(gatewayID).lean().exec().then(function (foundSO) {
@@ -267,7 +275,8 @@ function getAllSoForGateway(gatewayID) {
  * Returns an array of all ServiceObjects for a given user.
  *
  * @param userID the given user.
- * @returns {Promise} Promise with an array of Service Objects.
+ * @throws {NoDataFoundError} Could not find Service Objects for User.
+ * @returns {Promise} A Promise to either an array of service objects or an error.
  */
 function getAllSoForUser(userID) {
     return ServiceObject.find({ownerID: userID}).lean().exec().then(function (sos) {
@@ -283,10 +292,11 @@ function getAllSoForUser(userID) {
 }
 
 /**
- * Validates if a given JSON has the correct Gateway syntax.
+ * Validates if a given object has the correct syntax for a Gateway.
  *
- * @param gateway the given JSON
- * @returns {Promise} whether the given JSON has correct Gateway syntax or not.
+ * @param gateway the given gateway object.
+ * @throws {mongoose.Error.ValidationError} Failed validation.
+ * @returns {Promise} a Promise to either a resolved empty object or an error.
  */
 function validateGatewaySyntax(gateway) {
     return new Gateway(gateway).validate();
@@ -296,7 +306,7 @@ function validateGatewaySyntax(gateway) {
  * Adds a given Gateway to the database.
  *
  * @param newGateway the Gateway that is added.
- * @returns {Promise} whether adding was successful or not.
+ * @returns {Promise} A Promise to either a gatewayID or an error.
  */
 function addGateway(newGateway) {
     return new Gateway(newGateway).save().then(function (gateway) {
@@ -309,7 +319,8 @@ function addGateway(newGateway) {
  *
  * @param gatewayID the identifier of the gateway that is updated.
  * @param gateway the new values for the gateway.
- * @returns {Promise} whether updating was successful or not.
+ * @throws {NotFoundError} Could not find Gateway.
+ * @returns {Promise} A Promise to either a gatewayID or an error.
  */
 function updateGateway(gatewayID, gateway) {
     return Gateway.findByIdAndUpdate(gatewayID, gateway, {
@@ -319,7 +330,7 @@ function updateGateway(gatewayID, gateway) {
         if (!updatedGateway) {
             return Promise.reject(new NotFoundError("Could not find gateway."));
         } else {
-            return Promise.resolve(updatedGateway);
+            return Promise.resolve(updatedGateway._id);
         }
     });
 }
@@ -328,7 +339,8 @@ function updateGateway(gatewayID, gateway) {
  * Get the description of a Gateway from the database.
  *
  * @param gatewayID the identifier of the requested gateway.
- * @returns {Promise} whether the Gateway exists or not.
+ * @throws {NotFoundError} Could not find Gateway.
+ * @returns {Promise} A Promise to either a gateway object or an error.
  */
 function getGateway(gatewayID) {
     return Gateway.findById(gatewayID).select("id gatewayID URL port").lean().exec().then(function (foundGateway) {
@@ -343,17 +355,20 @@ function getGateway(gatewayID) {
 /**
  * Removes a Gateway.
  * The appropriate service objects and its sensor data will
- * not be removed but the Service Objects will be updated.
+ * not be removed but the gateway information in the Service Objects will be updated.
  *
  * @param gatewayID the identifier of the gateway that is deleted.
- * @returns {Promise} whether removing was successful or not.
+ * @throws {NotFoundError} Could not find Gateway.
+ * @returns {Promise} A Promise to either a resolved empty object or an error.
  */
 function removeGateway(gatewayID) {
     return Gateway.findByIdAndRemove(gatewayID).lean().exec().then(function (removedGateway) {
         if (!removedGateway) {
             return Promise.reject(new NotFoundError("Could not find gateway."));
         } else {
-            return ServiceObject.update({gatewayID: gatewayID}, {gatewayID: undefined}, {multi: true}).exec();
+            return ServiceObject.update({gatewayID: gatewayID}, {gatewayID: undefined}, {multi: true}).exec().then(function () {
+                return Promise.resolve();
+            });
         }
     });
 }
@@ -362,7 +377,8 @@ function removeGateway(gatewayID) {
  * Returns an array of all Gateways for a given user.
  *
  * @param userID the given user.
- * @returns {Promise} Promise with an array of Gateways.
+ * @throws {NoDataFoundError} Could not find data for User.
+ * @returns {Promise} A Promise to either an array of Gateways or an error.
  */
 function getAllGatewaysForUser(userID) {
     return Gateway.find({ownerID: userID}).select("id").lean().exec().then(function (gateways) {
@@ -382,7 +398,8 @@ function getAllGatewaysForUser(userID) {
  *
  * @param soID the given service object identifier.
  * @param streamID the given stream identifier.
- * @returns {Promise} whether the given parameters exist in the database or not.
+ * @throws {NotFoundError} when service object or streamID could not be found.
+ * @returns {Promise} A Promise to either a resolved empty object or an error.
  */
 function validateSoIdAndStreamId(soID, streamID) {
     return SensorData.validateSoID(soID).then(function () {
@@ -391,13 +408,14 @@ function validateSoIdAndStreamId(soID, streamID) {
 }
 
 /**
- * Validates if a given JSON has the correct SensorData syntax.
+ * Validates if a given object has the correct syntax for a Sensor Data.
  *
  * @param ownerID the ownerID of the sensor data.
  * @param soID the service object of the stream.
  * @param streamID the given stream.
- * @param data the given JSON
- * @returns {Promise} whether the given JSON has correct SensorData syntax or not.
+ * @param data the given sensor data object.
+ * @throws {mongoose.Error.ValidationError} Failed validation.
+ * @returns {Promise} A Promise to either a resolved empty object or an error.
  */
 function validateSensorDataSyntax(ownerID, soID, streamID, data) {
     data.ownerID = ownerID;
@@ -415,7 +433,7 @@ function validateSensorDataSyntax(ownerID, soID, streamID, data) {
  * @param soID the service object of the stream.
  * @param streamID the given stream.
  * @param data the added sensor data.
- * @returns {Promise} whether adding was successful or not.
+ * @returns {Promise} A Promise to either the saved object or an error.
  */
 function addSensorData(ownerID, soID, streamID, data) {
     data.ownerID = ownerID;
@@ -431,7 +449,8 @@ function addSensorData(ownerID, soID, streamID, data) {
  *
  * @param soID the service object of the stream.
  * @param streamID the given stream.
- * @returns {Promise} whether removing was successful or not.
+ * @throws {NoDataFoundError} Could not find Sensor Data.
+ * @returns {Promise} A Promise to either the removed object or an error.
  */
 function removeSensorData(soID, streamID) {
     return SensorData.find({soID: soID, streamID: streamID}).lean().exec().then(function (foundSDs) {
@@ -449,10 +468,11 @@ function removeSensorData(soID, streamID) {
  * @param soID the service object of the stream.
  * @param streamID the given stream.
  * @param options query options for the request.
- * @returns {Promise} Promise with an array of Sensor Data.
+ * @throws {NoDataFoundError} Could not find Sensor Data.
+ * @returns {Promise} A Promise to either an array of Sensor Data or an error.
  */
 function getSensorDataForStream(soID, streamID, options) {
-    // TODO Phil 18/11/16: implement options support
+    // TODO Phil 18/11/16: implement options support for this and {@clink #getSensorDataForUser}.
     return SensorData.find({soID: soID, streamID: streamID}).lean().exec()
         .then(function (data) {
             if (!data.length) {
@@ -468,10 +488,10 @@ function getSensorDataForStream(soID, streamID, options) {
  *
  * @param userID the identifier of the user the sensor data is returned for.
  * @param options query options for the request.
- * @returns {Promise} Promise with an array of Sensor Data.
+ * @throws {NoDataFoundError} Could not find Sensor Data.
+ * @returns {Promise} A Promise to either an array of Sensor Data or an error.
  */
 function getSensorDataForUser(userID, options) {
-    // TODO Phil 18/11/16: implement options support
     return SensorData.find({ownerID: userID}).lean().exec().then(function (data) {
         if (!data.length) {
             return Promise.reject(new NoDataFoundError("Could not find sensor data for given parameters"));

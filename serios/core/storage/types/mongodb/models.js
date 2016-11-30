@@ -188,6 +188,11 @@ function ServiceObjectSchema() {
         });
     };
 
+    /**
+     * Creates a mongoose schema for Sensor Streams.
+     *
+     * @returns {mongoose.Schema}
+     */
     function SensorStreamSchema() {
         var schema = mongoose.Schema({
             name: {
@@ -215,6 +220,11 @@ function ServiceObjectSchema() {
             return sensorChannel && sensorChannel.length;
         }
 
+        /**
+         * Creates a mongoose schema for Sensor Channel.
+         *
+         * @returns {mongoose.Schema}
+         */
         function SensorChannelSchema() {
             var schema = mongoose.Schema({
                 name: {
@@ -272,7 +282,8 @@ function SensorDataSchema() {
      * Validates if a service object for the given identifier (soID) exists.
      *
      * @param soID the given service object identifier.
-     * @returns {Promise} whether the given service object exists or not.
+     * @throws {NotFoundError} Could not find Service Object.
+     * @returns {Promise} A Promise to an resolved empty object or an error.
      */
     schema.statics.validateSoID = function (soID) {
         return ServiceObject.findById(soID).lean().exec().then(function (so) {
@@ -291,7 +302,8 @@ function SensorDataSchema() {
      *
      * @param soID the given service object identifier.
      * @param streamID the given stream identifier. This is only a valid key together with the soID.
-     * @returns {Promise} whether the given stream exists for a service object or not.
+     * @throws {NotFoundError} Could not find Service Object.
+     * @returns {Promise} A Promise to an resolved empty object or an error.
      */
     schema.statics.validateStreamID = function(soID, streamID) {
         return ServiceObject.findById(soID).lean().exec().then(function (so) {
@@ -319,6 +331,11 @@ function SensorDataSchema() {
         });
     };
 
+    /**
+     * Creates a mongoose schema for Channel Data.
+     *
+     * @returns {mongoose.Schema}
+     */
     function ChannelDataSchema() {
         var schema = mongoose.Schema({
             name: {

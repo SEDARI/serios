@@ -22,6 +22,22 @@ module.exports = {
     getAllSoForUser: getAllSoForUser
 };
 
+/**
+ * Handles a HTTP request for adding a Service Object.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * the service object is validated,
+ * and the service object is saved to the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function add(req, res) {
     var authorization = req.headers.authorization;
     var so = req.body;
@@ -46,6 +62,22 @@ function add(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for updating a Service Object.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * the service object is validated,
+ * and the service object is updated in the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function update(req, res) {
     var authorization = req.headers.authorization;
     var soID = req.params.soID;
@@ -73,6 +105,21 @@ function update(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting the description of a Service Object.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the service object is queried from the storage and returned.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function get(req, res) {
     var authorization = req.headers.authorization;
     var soID = req.params.soID;
@@ -92,6 +139,21 @@ function get(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for removing Service Objects.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the service object is removed from the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function remove(req, res) {
     var authorization = req.headers.authorization;
     var soID = req.params.soID;
@@ -111,6 +173,21 @@ function remove(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting all Service Objects for a Gateway.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the service objects are queried from the storage and returned.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function getAllSoForGateway(req, res) {
     var authorization = req.headers.authorization;
     var gatewayID = req.params.gatewayID;
@@ -132,6 +209,21 @@ function getAllSoForGateway(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting all Service Objects for a User.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * and the service objects are queried from the storage and returned.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function getAllSoForUser(req, res) {
     var authorization = req.headers.authorization;
 

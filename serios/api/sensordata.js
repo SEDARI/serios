@@ -20,6 +20,22 @@ module.exports = {
     getDataForUser: getSensorDataForUser
 };
 
+/**
+ * Handles a HTTP request for adding Sensor Data.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked,
+ * the sensor data is validated,
+ * and the sensor data is saved to the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function add(req, res) {
     var authorization = req.headers.authorization;
     var soID = req.params.soID;
@@ -47,6 +63,21 @@ function add(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for removing Sensor Data.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked
+ * and the sensor data is removed from the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function remove(req, res) {
     var authorization = req.headers.authorization;
     var soID = req.params.soID;
@@ -69,13 +100,28 @@ function remove(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting Sensor Data for a Stream of a Service Object.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked
+ * and sensor data is queried from the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function getSensorDataForStream(req, res) {
     var authorization = req.headers.authorization;
     var options = req.params.options;
 
     if (options) {
         res.status(501).json({msg: "Options are not yet implemented"});
-        return;
+        return Promise.resolve();
     }
 
     return checkPermission(authorization).then(function () {
@@ -93,6 +139,21 @@ function getSensorDataForStream(req, res) {
     });
 }
 
+/**
+ * Handles a HTTP request for getting Sensor Data for a User.
+ * It handles the following cases in this order:
+ *
+ * The user-authorization is checked
+ * and sensor data is queried from the storage.
+ *
+ * If anyone of these steps fail the process is aborted and a specific HTTP status code and message is sent.
+ *
+ * A resolved {Promise} is returned as the request sends a HTTP response for every case.
+ *
+ * @param req Represents the HTTP request with its headers and parameters. This request is handled in this function.
+ * @param res Represents the HTTP response this function sends when it gets the HTTP request.
+ * @returns {Promise} A Promise to be resolved.
+ */
 function getSensorDataForUser(req, res) {
     var authorization = req.headers.authorization;
     var options = req.params.options;
@@ -119,7 +180,7 @@ function getSensorDataForUser(req, res) {
  * @param soID the service object of the stream.
  * @param streamID the stream that the data is pushed for.
  * @param data the data that is pushed.
- * @returns {Promise}
+ * @returns {Promise} A Promise to be resolved.
  */
 var addSensorData = function (ownerID, soID, streamID, data) {
     return storage.addSensorData(ownerID, soID, streamID, data);
@@ -130,7 +191,7 @@ var addSensorData = function (ownerID, soID, streamID, data) {
  *
  * @param soID the service object of the stream.
  * @param streamID the stream which data is removed.
- * @returns {Promise}
+ * @returns {Promise} A Promise to be resolved.
  */
 var removeSensorData = function (soID, streamID) {
     return storage.removeSensorData(soID, streamID);
@@ -142,7 +203,7 @@ var removeSensorData = function (soID, streamID) {
  * @param soID the service object of the stream.
  * @param streamID the stream which data is returned.
  * @param options query options, e.g. a timestamp.
- * @returns {Promise}
+ * @returns {Promise} A Promise to be resolved.
  */
 var getAllSensorDataForStream = function (soID, streamID, options) {
     return storage.getSensorDataForStream(soID, streamID, options);
@@ -153,7 +214,7 @@ var getAllSensorDataForStream = function (soID, streamID, options) {
  *
  * @param userID the user the data is return for.
  * @param options query options, e.g. a timestamp.
- * @returns {Promise}
+ * @returns {Promise} A Promise to be resolved.
  */
 var getAllSensorDataForUser = function (userID, options) {
     return storage.getSensorDataForUser(userID, options);
@@ -166,7 +227,7 @@ var getAllSensorDataForUser = function (userID, options) {
  * @param soID the service object of the stream.
  * @param streamID the stream which data is added for.
  * @param sensorData the sensor data that is validated.
- * @returns {Promise}
+ * @returns {Promise} A Promise to be resolved.
  */
 var validateSyntax = function (userID, soID, streamID, sensorData) {
     return storage.validateSensorDataSyntax(userID, soID, streamID, sensorData);
