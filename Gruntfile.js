@@ -305,6 +305,12 @@ module.exports = function(grunt) {
                         dest: 'public/idm/static'
                     },
                     {
+                        cwd: 'node_modules/agile-idm-web-ui/views',
+                        src: '**',
+                        expand: true,
+                        dest: 'views'
+                    },
+                    {
                         src: 'node_modules/neros/CHANGELOG.md',
                         dest: 'public/red/about'
                     }
