@@ -24,16 +24,23 @@ function add(req, res) {
     checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(function (userID) {
-        ownerID = userID;
-        return validateSyntax(sensorData);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data."});
+        // TODO: remove dummy uid
+        // ownerID = userID;
+        ownerID = 1;
+        // TODO: Reinsert validation (after testphase)
+        // return validateSyntax(sensorData);
+        return Promise.resolve();
     }).then(function () {
         return addSensorData(ownerID, soID, streamID, sensorData);
-    }).catch(function () {
-        res.status(507).json({msg: "Insufficient Storage. Could not save Sensor Data."});
     }).then(function () {
         res.status(201).json({msg: "Data stored, accepted for dispatching."});
+    }).catch(function (err) {
+        if(err) {
+            // TODO: Ensure async logging
+            console.log(err);
+            res.status(507).json({msg: "Insufficient Storage. Could not save Sensor Data."});
+        } else
+            res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data."});
     });
 }
 
@@ -53,16 +60,16 @@ function remove(req, res) {
 
 function getSensorDataForStream(req, res) {
     var authorization = req.headers.authorization;
-    var options = req.params.options;
 
     checkPermission(authorization).catch(function () {
         res.status(403).json({msg: "Forbidden. Access was denied!"});
     }).then(function () {
-        return getAllSensorDataForStream(req.params.soID, req.params.streamID, options);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
+        return getSensorDataForStream(req.params.soID, req.params.streamID, req.params.options);
     }).then(function (data) {
         res.status(200).json({data: data});
+    }).catch(function (err) {
+        console.log(err);
+        res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
     });
 }
 
@@ -91,7 +98,7 @@ function getSensorDataForUser(req, res) {
  * @returns {Promise}
  */
 var addSensorData = function (ownerID, soID, streamID, data) {
-    storage.addSensorData(ownerID, soID, streamID, data);
+    return storage.addSensorData(ownerID, soID, streamID, data);
 };
 
 /**
@@ -102,7 +109,7 @@ var addSensorData = function (ownerID, soID, streamID, data) {
  * @returns {Promise}
  */
 var removeSensorData = function (soID, streamID) {
-    storage.removeSensorData(soID, streamID);
+    return storage.removeSensorData(soID, streamID);
 };
 
 /**
@@ -113,8 +120,8 @@ var removeSensorData = function (soID, streamID) {
  * @param options query options, e.g. a timestamp.
  * @returns {Promise}
  */
-var getAllSensorDataForStream = function (soID, streamID, options) {
-    storage.getSensorDataForStream(soID, streamID, options);
+var getSensorDataForStream = function (soID, streamID, options) {
+    return storage.getSensorDataForStream(soID, streamID, options);
 };
 
 /**
