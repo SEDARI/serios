@@ -5,7 +5,7 @@
  */
 module.exports = {
     checkPermission: function (authorization_token) {
-        return new Promise(function (resolve, reject) {
+        /*return new Promise(function (resolve, reject) {
             // this is a dummy version for later authentication
             // We will use identity management from Juan David
             if (authorization_token) {
@@ -13,6 +13,7 @@ module.exports = {
             } else {
                 reject();
             }
-        });
+            });*/
+        return Promise.resolve();
     }
 };
