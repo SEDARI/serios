@@ -19,9 +19,6 @@
             "name": "Daniel Schreckling"
         },
         {
-            "name": "Tobias Marktscheffel"
-        },
-        {
             "name": "Phil Werli",
             "email": "werli@fim.uni-passau.de"
         }
@@ -36,7 +33,7 @@
         "express": "^4.14.0",
         "when": "3.7.7",
         "uuid": "3.0.0",
-        "mongoose": "^4.6.0",
+        "mongoose": "^4.7.0",
         "async": "2.0.1",
         "q": "1.4.1",
         "body-parser": "1.15.2",
