@@ -1,4 +1,5 @@
 var api = require("./api");
+var ui = require("./ui");
 var core = require("./core");
 var app = null;
 
@@ -8,6 +9,7 @@ var SERIOS = {
         app = core.app;
         
         api.init(httpServer, core);
+        ui.init(httpServer, core);
     },
     start : function() {
         return core.start().then(function() { return api.start(); });
