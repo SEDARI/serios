@@ -1,6 +1,7 @@
 /**
  This file holds all the storage logic using a MongoDB database with mongoose.
- */
+*/
+var clone = require("clone");
 var mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
 
@@ -34,8 +35,8 @@ module.exports = {
     validateSensorDataSyntax: validateSensorDataSyntax,
     addSensorData: addSensorData,
     removeSensorData: removeSensorData,
-    getAllSensorDataForStream: getAllSensorDataForStream,
-    getAllSensorDataForUser: getAllSensorDataForUser
+    getSensorDataForStream: getSensorDataForStream,
+    getSensorDataForUser: getSensorDataForUser
 };
 
 /**
@@ -57,6 +58,69 @@ function validateServiceObjectSyntax(so) {
     return new ServiceObject(so).validate();
 }
 
+function transformSO2Serios(old) {
+    var newSO = clone(old);
+
+    delete newSO.streams;
+    newSO.streams = [];
+    for(var s in old.streams) {
+        var newStream = clone(old.streams[s]);
+        newStream.name = s;
+        if(newStream.channels !== undefined && newStream.channels !== null) {
+            delete newStream.channels;
+            newStream.channels = [];
+            for(var c in old.streams[s].channels) {
+                var newChannel = clone(old.streams[s].channels[c]);
+                newChannel.name = c;
+                newStream.channels.push(newChannel);
+            }
+        }
+        newSO.streams.push(newStream);
+    }
+    return newSO;
+}
+
+function transformSOU2Serios(old) {
+    var newChannels = [];
+    for(var c in old.channels) {
+        var newChannel = {};
+        newChannel.name = c;
+        newChannel.value = old.channels[c]['current-value'];
+        newChannels.push(newChannel);
+    }
+    return { "channels" : newChannels, "lastUpdate" : old.lastUpdate };
+}
+
+function transformSO2Servioticy(old) {
+    var newSO = clone(old);
+    delete newSO.streams;
+    newSO.streams = {};
+
+    for(var s in old.streams) {
+        var newStream = clone(old.streams[s]);
+        if(newStream.channels !== undefined && newStream.channels !== null) {
+            delete newStream.channels;
+            newStream.channels = {};
+            for(var c in old.streams[s].channels) {
+                var newChannel = clone(old.streams[s].channels[c]);
+                newStream.channels[old.streams[s].channels[c].name] = newChannel;
+            }
+        }
+        newSO.streams[old.streams[s].name] = newStream;
+    }
+    return newSO;
+}
+
+function transformSOU2Servioticy(old) {
+    var newChannels = {};
+    for(var c in old.channels) {
+        var newChannel = {};
+        newChannel['current-value'] = old.channels[c].value;
+        newChannels[old.channels[c].name] = newChannel;
+    }
+    return { "channels" : newChannels, "lastUpdate" : old.lastUpdate };
+}
+
 /**
  * Adds a given Service Object to the database.
  *
@@ -71,7 +135,9 @@ function addServiceObject(newSo) {
     if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
         return evaluateGatewayAndAddServiceObject(gateway);
     } else {
-        return ServiceObject.saveWithoutGateway(new ServiceObject(newSo));
+        // transform servIoTicy format to serios format
+        var transSO = transformSO2Serios(newSo);
+        return ServiceObject.saveWithoutGateway(new ServiceObject(transSO));
     }
 
     function evaluateGatewayAndAddServiceObject(gateway) {
@@ -198,12 +264,12 @@ function updateServiceObject(soID, newSo) {
  * @returns {Promise} whether the Service Object exits or not.
  */
 function getServiceObject(soID) {
-    return ServiceObject.findById(soID).select("id gatewayID name description streams").exec().then(function (mod) {
+    return ServiceObject.findById(soID).lean().select("id gatewayID name description streams").exec().then(function (mod) {
         return new Promise(function (resolve, reject) {
             if (!mod) {
                 reject();
             } else {
-                resolve(mod);
+                resolve(transform2Servioticy(mod));
             }
         });
     });
@@ -400,12 +466,18 @@ function validateSensorDataSyntax(soID, streamID, data) {
  * @param data the added sensor data.
  * @returns {Promise} whether adding was successful or not.
  */
-function addSensorData(ownerID, soID, streamID, data) {
+function addSensorData(ownerID, soID, streamID, olddata) {
+    var data = transformSOU2Serios(olddata);
     data.ownerID = ownerID;
     data.soID = soID;
     data.streamID = streamID;
+
     return validateSoIdAndStreamId(soID, streamID).then(function () {
         return new SensorData(data).save();
+    }).catch(function(err) {
+        // TODO properly log with async function
+        console.log(err);
+        return Resolve.reject();
     });
 }
 
@@ -437,18 +509,32 @@ function removeSensorData(soID, streamID) {
  * @param streamID the given stream.
  * @returns {Promise} Promise with an array of Sensor Data.
  */
-function getAllSensorDataForStream(soID, streamID, options) {
+function getSensorDataForStream(soID, streamID, options) {
     // TODO Phil 18/11/16: implement options support
     return validateSoIdAndStreamId(soID, streamID).then(function () {
-        return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
-    }).then(function (data) {
+        if(options === "lastUpdate") {
+            // TODO: create an Index at installation time which supports this operations, otherwise this is horribly slow
+            return SensorData.aggregate([ {$match : { 'soID' : soID, 'streamID' : streamID } }, {$sort : { 'lastUpdate' : -1 } }, { $limit : 1 } ] ).exec();
+        } else if(options === "all") {
+            return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
+        } else
+            return Promise.reject();
+    }).then(function (items) {
+        var results = [];
+        for(var i in items)
+            results.push(transformSOU2Servioticy(items[i]));
+
         return new Promise(function (resolve, reject) {
-            if (data.length === 0) {
+            if (results.length === 0) {
                 reject();
             } else {
-                resolve(data);
+                resolve(results);
             }
         });
+    }).catch(function(err) {
+        if(err)
+            console.log(err);
+        return Promise.reject();
     });
 }
 
@@ -458,7 +544,7 @@ function getAllSensorDataForStream(soID, streamID, options) {
  * @param userID
  * @returns {Promise} Promise with an array of Sensor Data.
  */
-function getAllSensorDataForUser(userID, options) {
+function getSensorDataForUser(userID, options) {
     // TODO Phil 18/11/16: implement options support
     return SensorData.find({ownerID: userID}).lean().exec().then(function (data) {
         return new Promise(function (resolve, reject) {

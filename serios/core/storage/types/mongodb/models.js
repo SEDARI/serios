@@ -96,11 +96,13 @@ function ServiceObjectSchema() {
             },
             name: {
                 type: String,
-                required: [true, 'Service Object name required']
+                // required: [true, 'Service Object name required']
+                required: false
             },
             description: {
                 type: String,
-                required: [true, 'Service Object description required']
+                // required: [true, 'Service Object description required']
+                required: false
             },
             streams: {
                 type: [SensorStreamSchema()],
@@ -194,14 +196,14 @@ function ServiceObjectSchema() {
             },
             description: {
                 type: String,
-                required: true
+                required: false
             },
             channels: {
                 type: [SensorChannelSchema()],
                 validate: sensorChannelValidator,
                 required: true
             }
-        });
+        }, { _id: false });
 
         /**
          * Validates if a given channels property is not empty.
@@ -219,6 +221,10 @@ function ServiceObjectSchema() {
                     type: String,
                     required: true
                 },
+                description: {
+                    type: String,
+                    required: false
+                },
                 type: {
                     type: String,
                     lowercase: true,
@@ -229,7 +235,7 @@ function ServiceObjectSchema() {
                     type: String,
                     required: true
                 }
-            });
+            }, { _id: false });
             return schema;
         }
 
@@ -246,25 +252,31 @@ function ServiceObjectSchema() {
  */
 function SensorDataSchema() {
     var schema = mongoose.Schema({
-            ownerID: {
-                type: String,
-                required: [true, 'Sensor data ownerID required']
-            },
-            soID: {
-                type: String,
-                required: true
-            },
-            streamID: {
-                type: String,
-                required: true
-            },
-            channels: {
-                type: [ChannelDataSchema()],
-                required: true
-            }
+        ownerID: {
+            type: String,
+            // required: [true, 'Sensor data ownerID required']
+            required: false
         },
-        {timestamps: true},
-        {strict: true});
+        soID: {
+            type: String,
+            required: true
+        },
+        streamID: {
+            type: String,
+            required: true
+        },
+        channels: {
+            type: [ChannelDataSchema()],
+            required: true
+        },
+        lastUpdate : {
+            type: Number,
+            required: true
+        }
+    },
+    // Removed as time stamps should be provided at client side
+    // {timestamps: true},
+    {strict: true});
 
     /**
      * Validates if a service object for the given identifier (soID) exists.
@@ -327,7 +339,7 @@ function SensorDataSchema() {
                 type: String,
                 required: true
             }
-        });
+        }, { _id: false });
         return schema;
     }
 
