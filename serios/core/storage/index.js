@@ -58,8 +58,8 @@ module.exports = {
     validateSensorDataSyntax : function (data) {
         return storage.validateSensorDataSyntax(data);
     },
-    addSensorData: function (soID, streamID, data) {
-        return storage.addSensorData(soID, streamID, data);
+    addSensorData: function (userID, soID, streamID, data) {
+        return storage.addSensorData(userID, soID, streamID, data);
     },
     removeSensorData : function (soID, streamID) {
         return storage.removeSensorData(soID, streamID);
