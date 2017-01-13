@@ -20,4 +20,4 @@ exports.delete = function (id, done) {
     console.log("DELETE TOKEN: "+id);
   delete tokens[id];
   done();
-}
+};

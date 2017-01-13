@@ -16,25 +16,23 @@ var profileFromIDM = function (conf, accessToken, done) {
             'Content-type': 'application/json'
         }
     };
-    request.get(options, function (error, response, body) {
-        console.log("--------------- DO SOMETHING 2 -----------------------");
-        if (!error && response.statusCode == 200) {
+    request.get(options, function (err, response, body) {
+        if (!err && response.statusCode == 200) {
             try {
                 var user = JSON.parse(body);
-                tokens.create(user.id, accessToken, function (error, token) {
+                tokens.create(user.id, accessToken, function (err, token) {
                     done(null, user);
-                })
-
+                });
             } catch (error) {
                 done(createError(500, "unexpected result from IDM userinfo endpoint " + body + error), null);
             }
-        } else if (!error) {
+        } else if (!err) {
             if (response.statusCode == 401)
                 return done(null, null);
             else
                 return done(createError(response.statusCode, "wrong satus code from remote AGILE webserver for authentication: " + body), null);
         } else {
-            return done(error, null);
+            return done(err, null);
         }
     });
 };
@@ -51,7 +49,6 @@ function loadStrategy(conf) {
             callbackURL: conf.callbackURL
         },
                                           function (accessToken, refreshToken, profile, cb) {
-                                              console.log("--------------- DO SOMETHING -----------------------");
                                               console.log("user token obtained! " + accessToken);
                                               console.log("profile  " + JSON.stringify(profile));
                                               user.findOrCreate(profile.id, profile, function (err, user) {

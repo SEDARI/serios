@@ -48,4 +48,4 @@ exports.buildCriteria = function (listattributes, listvalues) {
     }
   }
   return c;
-}
+};

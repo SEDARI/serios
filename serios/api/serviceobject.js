@@ -26,7 +26,7 @@ function add(req, res) {
     }).then(function (userID) {
         so.ownerID = userID;
         // TODO: remove dummy user
-        so.ownerID = 1
+        so.ownerID = 1;
         // TODO: ensure validation again after adjustment to servioticy format
         // return validateSyntax(so);
         return Promise.resolve();

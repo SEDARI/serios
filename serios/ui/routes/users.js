@@ -8,7 +8,7 @@ var util = require('./util');
 
 function router(conf, idm_conf, router) {
 
-  var url = idm_conf.protocol + "://" + idm_conf.host + ":" + idm_conf.port + "/api/v1"
+  var url = idm_conf.protocol + "://" + idm_conf.host + ":" + idm_conf.port + "/api/v1";
 
   /*
    reading user
@@ -51,11 +51,11 @@ function router(conf, idm_conf, router) {
               "action": action
             });
 
-          } catch (error) {
+          } catch (err) {
             res.render('result', {
               "result": [{
                 "label": "error",
-                "value": "unexpected result from IDM  endpoint " + error
+                "value": "unexpected result from IDM  endpoint " + err
               }],
               "action": action
             });
@@ -121,11 +121,11 @@ function router(conf, idm_conf, router) {
               "action": action
             });
 
-          } catch (error) {
+          } catch (err) {
             res.render('result', {
               "result": [{
                 "label": "error",
-                "value": "unexpected result from IDM  endpoint " + error
+                "value": "unexpected result from IDM  endpoint " + err
               }],
               "action": action
             });
@@ -196,11 +196,11 @@ function router(conf, idm_conf, router) {
               "action": action
             });
 
-          } catch (error) {
+          } catch (err) {
             res.render('result', {
               "result": [{
                 "label": "error",
-                "value": "unexpected result from IDM  endpoint " + error
+                "value": "unexpected result from IDM  endpoint " + err
               }],
               "action": action
             });

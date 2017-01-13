@@ -85,7 +85,9 @@ function transformSOU2Serios(old) {
     for(var c in old.channels) {
         var newChannel = {};
         newChannel.name = c;
-        newChannel.value = old.channels[c]['current-value'];
+        var value = old.channels[c]['current-value'];
+        if(value !== undefined)
+            newChannel.value = value;
         newChannels.push(newChannel);
     }
     return { "channels" : newChannels, "lastUpdate" : old.lastUpdate };
@@ -132,11 +134,13 @@ function transformSOU2Servioticy(old) {
  */
 function addServiceObject(newSo) {
     var gateway = newSo.gateway;
+
+    // transform servIoTicy format to serios format
+    var transSO = transformSO2Serios(newSo);
+
     if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
         return evaluateGatewayAndAddServiceObject(gateway);
     } else {
-        // transform servIoTicy format to serios format
-        var transSO = transformSO2Serios(newSo);
         return ServiceObject.saveWithoutGateway(new ServiceObject(transSO));
     }
 
@@ -154,9 +158,9 @@ function addServiceObject(newSo) {
             }
             return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                 if (foundGateway) {
-                    newSo.gatewayID = foundGateway._id;
-                    delete newSo.gateway;
-                    return ServiceObject.saveSoGetSoId(new ServiceObject(newSo));
+                    transSO.gatewayID = foundGateway._id;
+                    delete transSO.gateway;
+                    return ServiceObject.saveSoGetSoId(new ServiceObject(transSO));
                 } else {
                     return Promise.reject(new Error("Error! Could not find Gateway!"));
                 }
@@ -168,14 +172,14 @@ function addServiceObject(newSo) {
             };
             return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                 if (foundGateway) {
-                    newSo.gatewayID = foundGateway._id;
-                    return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(newSo));
+                    transSO.gatewayID = foundGateway._id;
+                    return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(transSO));
                 } else {
                     // no existing gateway found? create a new one with the given information
-                    gateway.ownerID = newSo.ownerID;
+                    gateway.ownerID = transSO.ownerID;
                     return addGateway(gateway).then(function (id) {
-                        newSo.gatewayID = id;
-                        return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(newSo));
+                        transSO.gatewayID = id;
+                        return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(transSO));
                     });
                 }
             });
@@ -197,12 +201,14 @@ function updateServiceObject(soID, newSo) {
         new: true
     };
 
+    var transSO = transformSO2Serios(newSo);
+
     return ServiceObject.findById(soID).exec().then(function (oldSo) {
-        var gateway = newSo.gateway;
+        var gateway = transSO.gateway;
         var options;
         if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
             if (gateway.gatewayID && oldSo.gatewayID == gateway.gatewayID) {
-                return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
+                return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
                     return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
                 });
             } else if (gateway.gatewayID) {
@@ -217,9 +223,9 @@ function updateServiceObject(soID, newSo) {
                 }
                 return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                     if (foundGateway) {
-                        newSo.gatewayID = foundGateway._id;
-                        delete newSo.gateway;
-                        return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
+                        transSO.gatewayID = foundGateway._id;
+                        delete transSO.gateway;
+                        return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
                             return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
                         });
                     } else {
@@ -233,16 +239,16 @@ function updateServiceObject(soID, newSo) {
                 };
                 return Gateway.findOne(options).exec().then(function (foundGateway) {
                     if (foundGateway) {
-                        newSo.gatewayID = foundGateway._id;
-                        return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
+                        transSO.gatewayID = foundGateway._id;
+                        return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
                             return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
                         });
                     } else {
                         // no existing gateway found? create a new one with the given information
-                        gateway.ownerID = newSo.ownerID;
+                        gateway.ownerID = transSO.ownerID;
                         return addGateway(gateway).then(function (id) {
-                            newSo.gatewayID = id;
-                            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec().then(function (updatedSO) {
+                            transSO.gatewayID = id;
+                            return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
                                 return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
                             });
                         });
@@ -250,11 +256,12 @@ function updateServiceObject(soID, newSo) {
                 });
             }
         } else {
-            delete newSo.gatewayID;
-            return ServiceObject.findByIdAndUpdate(soID, newSo, updateOptions).lean().exec();
+            delete transSO.gatewayID;
+            return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
+                return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+            });
         }
     });
-
 }
 
 /**
@@ -269,7 +276,7 @@ function getServiceObject(soID) {
             if (!mod) {
                 reject();
             } else {
-                resolve(transform2Servioticy(mod));
+                resolve(transformSO2Servioticy(mod));
             }
         });
     });
@@ -468,6 +475,7 @@ function validateSensorDataSyntax(soID, streamID, data) {
  */
 function addSensorData(ownerID, soID, streamID, olddata) {
     var data = transformSOU2Serios(olddata);
+
     data.ownerID = ownerID;
     data.soID = soID;
     data.streamID = streamID;
@@ -475,9 +483,7 @@ function addSensorData(ownerID, soID, streamID, olddata) {
     return validateSoIdAndStreamId(soID, streamID).then(function () {
         return new SensorData(data).save();
     }).catch(function(err) {
-        // TODO properly log with async function
-        console.log(err);
-        return Resolve.reject();
+        return Promise.reject(err);
     });
 }
 
@@ -532,9 +538,7 @@ function getSensorDataForStream(soID, streamID, options) {
             }
         });
     }).catch(function(err) {
-        if(err)
-            console.log(err);
-        return Promise.reject();
+        return Promise.reject(err);
     });
 }
 
@@ -551,7 +555,11 @@ function getSensorDataForUser(userID, options) {
             if (data.length === 0) {
                 reject();
             } else {
-                resolve(data);
+                var newData = [];
+                for(var i in data) {
+                    newData.push(transformSOU2Servioticy(data[i]));
+                }
+                resolve(newData);
             }
         });
     });
