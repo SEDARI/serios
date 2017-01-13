@@ -24,7 +24,11 @@ var models = require("../serios/core/storage/types/mongodb/models");
 
 var db = require("../serios/core/storage/types/mongodb");
 var settings = clone(require("../settings").storage);
-settings.location = "mongodb://localhost:27017/serios-testserver";
+
+settings.host="localhost";
+settings.dbname = "serios-testserver";
+settings.user = "test";
+settings.password = "test";
 
 describe("mongoose", function () {
     this.timeout(1000);

@@ -6,7 +6,11 @@ module.exports = {
     },
     storage: {
         type: "mongodb",
-        location: "mongodb://localhost:27017/serios-database",
+        host: "localhost",
+        port: "27017",
+        dbname: "serios-database",
+        user: "serios",
+        password: "serios",
         max_number_of_sensor_data_saved : 10000,
         max_duration_of_sensor_data_saved: {
             value: 30,

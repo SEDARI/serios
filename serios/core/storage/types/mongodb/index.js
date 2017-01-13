@@ -45,7 +45,7 @@ module.exports = {
  * @param settings the settings for the mongodb database.
  */
 function init(settings) {
-    mongoose.connect(settings.location);
+    mongoose.connect("mongodb://"+settings.user+":"+settings.password+"@"+settings.host+":"+settings.port+"/"+settings.dbname);
 }
 
 /**
