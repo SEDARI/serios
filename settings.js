@@ -16,7 +16,11 @@ module.exports = {
             value: 30,
             // one of 'seconds', 'minutes', 'hours', 'days'.
             timeunit: "days"
-        }
+        },
+
+        testdbname: "serios-test",
+        testuser: "seriosTest",
+        testpassword: "seriosTest"
     },
     oauth2: {
         authorizationURL: 'http://localhost:3000/idm/oauth2/dialog/authorize',

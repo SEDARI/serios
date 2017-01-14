@@ -5,10 +5,9 @@ if(settings.type === "mongodb") {
     var client = require("mongodb").MongoClient;
 
     logger.log("info", "Initialize MongoDB Database");
-    
+
     var admin = "";
     var pwd = "";
-    var adminDB = "admin";
 
     var url = "mongodb://"+settings.host+":"+settings.port;
 

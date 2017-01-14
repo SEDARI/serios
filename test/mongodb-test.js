@@ -18,6 +18,8 @@ chai.use(require("chai-as-promised"));
 var clone = require("clone");
 var uuid = require("uuid");
 
+const logger = require("winston");
+
 var mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
 var models = require("../serios/core/storage/types/mongodb/models");
@@ -25,10 +27,9 @@ var models = require("../serios/core/storage/types/mongodb/models");
 var db = require("../serios/core/storage/types/mongodb");
 var settings = clone(require("../settings").storage);
 
-settings.host="localhost";
-settings.dbname = "serios-testserver";
-settings.user = "test";
-settings.password = "test";
+settings.dbname = settings.testdbname;
+settings.user = settings.testuser;
+settings.password = settings.testpassword;
 
 describe("mongoose", function () {
     this.timeout(1000);
@@ -317,7 +318,6 @@ describe("mongoose", function () {
                 before(function () {
                     return db.addServiceObject(soWithoutGateway).then(function (res) {
                         soID = res.soID;
-                        console.log("soID: ", soID);
                     }).should.be.fulfilled;
                 });
                 after(function () {
@@ -431,7 +431,6 @@ describe("mongoose", function () {
             it("Should successfully get Service Object", function () {
                 return db.getServiceObject(soID).then(function (foundSO) {
                     expect(foundSO.name).to.equal(so.name);
-                    console.log("foundSO.name: ", foundSO.name);
                     // expect(foundSO.description).to.equal(so.description);
                     // expect(foundSO.streams.length).to.equal(so.streams.length);
                 }).should.be.fulfilled;
@@ -915,12 +914,132 @@ describe("mongoose", function () {
 });
 
 before(function (done) {
-    db.init(settings);
-    done();
+    setupDB(settings).then(function() {
+        db.init(settings);
+        done();
+    }).catch(function(err) {
+        console.log("problem: ", err);
+    })
 });
 
 after(function (done) {
     mongoose.disconnect();
-    done();
+    delDB(settings).then(function() {
+        logger.log("Database cleaned");
+        done();
+    }, function(err) {
+        logger.log("Failed to clean up test database.");
+        logger.log(err);
+        done();
+    });
 });
 
+var admin = "admin";
+var pwd = "serios";
+
+var delDB = function(settings) {
+    var url = "mongodb://"+settings.user+":"+settings.password+"@"+settings.host+":"+settings.port+"/"+settings.dbname;
+
+    var client = require("mongodb").MongoClient;
+
+    var db = null;
+    
+    return client.connect(url)
+        .then(function(_db) {
+            db = _db;
+            return db.dropDatabase().then(function() {
+                logger.log("info", "Test database successfully removed.");
+                return Promise.resolve();
+            }, function(err) {
+                logger.log("error", "Unable to remove test database.");
+                return Promise.reject(err);
+            });
+        })
+        .then(function() {
+            return db.removeUser(settings.user).then(function() {
+                logger.log("info", "Test user successfully removed.");
+                return Promise.resolve();
+            }, function(err) {
+                logger.log("warn", "Unable to remove test user.");
+                return Promise.reject(err);
+            });
+        })
+        .then(function() {
+            return db.close();
+        })
+        .catch(function(err) {
+            db.close();
+            return Promise.reject(err);
+        });
+};
+
+var setupDB = function (settings) {
+    logger.log("info", "Initialize MongoDB Test-Database");
+    
+    var url = "mongodb://"+settings.host+":"+settings.port;
+
+    var adminDB = null;
+    var newDB = null;
+    var db = null;
+
+    var client = require("mongodb").MongoClient;
+    
+    return client.connect(url)
+        .then(function(_db) {
+            db = _db;
+            adminDB = db.admin();
+            if(admin === "" || pwd === "") {
+                logger.log("warn", "No admin password or user specified. Try to continue without.");
+                return Promise.resolve();
+            } else 
+                return adminDB.authenticate(admin, pwd);
+        })
+        .then(function() {
+            return db.db(settings.dbname);
+        }, function(err) {
+            logger.log('error', "Unable to authenticate as admin.");
+            return Promise.reject(err);
+        })
+        .then(function(_db) {
+            newDB = _db;
+            return newDB.addUser(settings.user, settings.password, { roles : [ { role : "readWrite", db : settings.dbname }, { role : "dbOwner", db : settings.dbname } ] } ).then(
+                function() {
+
+                    return Promise.resolve();
+                },
+                function(err) {
+                    logger.log('warn', "Database user was not created. It may already exist.");
+                    return Promise.resolve();
+                }
+            );
+        }, function(err) {
+            logger.log('error', "Unable to change or create datasensor collection.");
+            return Promise.reject(err);
+        })
+        .then(function() {
+            return newDB.authenticate(settings.user, settings.password);
+        })
+        .then(function() {
+            logger.log('info', "User '"+settings.user+"' is authenticated now.");
+            return newDB.createCollection("sensordata").then(
+                function() {
+                    logger.log("info", "Sensor data collection successfully created.");
+                    return Promise.resolve();
+                },
+                function(err) {
+                    logger.log("warn", "Collection 'sensordata' may already exist. Collection not created.", err);
+                    return Promise.resolve();
+                });
+        })
+        .then(function() {
+            logger.log("info", "SERIOS database successfully initialized.");
+            db.close();
+            return Promise.resolve();
+        })    
+        .catch(function(err) {
+            console.log(err);
+            db.close();
+
+            return Promise.reject();
+        });
+};
