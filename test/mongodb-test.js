@@ -934,8 +934,8 @@ after(function (done) {
     });
 });
 
-var admin = "admin";
-var pwd = "serios";
+var admin = "";
+var pwd = "";
 
 var delDB = function(settings) {
     var url = "mongodb://"+settings.user+":"+settings.password+"@"+settings.host+":"+settings.port+"/"+settings.dbname;
