@@ -6,8 +6,8 @@ if(settings.type === "mongodb") {
 
     logger.log("info", "Initialize MongoDB Database");
     
-    var admin = "admin";
-    var pwd = "serios";
+    var admin = "";
+    var pwd = "";
     var adminDB = "admin";
 
     var url = "mongodb://"+settings.host+":"+settings.port;
@@ -20,7 +20,11 @@ if(settings.type === "mongodb") {
         .then(function(_db) {
             db = _db;
             adminDB = db.admin();
-            return adminDB.authenticate(admin, pwd);
+            if(admin === "" || pwd === "") {
+                logger.log("warn", "No admin password or user specified. Try to continue without.");
+                return Promise.resolve();
+            } else 
+                return adminDB.authenticate(admin, pwd);
         })
         .then(function() {
             return db.db(settings.dbname);
