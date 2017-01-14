@@ -10,7 +10,7 @@
     },
     "main": "serios.js",
     "scripts": {
-        "postinstall": "grunt build",
+        "postinstall": "grunt build && node scripts/dbSetup.js",
         "start": "node serios.js",
         "test" : "grunt"
     },
