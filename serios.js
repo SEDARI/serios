@@ -1,14 +1,6 @@
 #!/usr/bin/env node
-
-var http = require('http');
-var https = require('https');
 var express = require('express');
-var util = require('util');
-
-var SERIOS = require("./serios/serios.js");
-
-var app = express();
-var server = null;
+var cluster = require('cluster');
 
 var settingsFile = "./settings";
 try {
@@ -23,47 +15,33 @@ try {
     process.exit();
 }
 
-if(!settings.server.tls) {
-    server = http.createServer(function(req, res) { app(req, res); });
+if (cluster.isMaster) {
+    // Count the machine's CPUs
+    var cpuCount = require('os').cpus().length;
+
+    // Create a worker for each CPU
+    for (var i = 0; i < cpuCount; i += 1) {
+        cluster.fork();
+    }
 } else {
-    var options = {
-        key: fs.readFileSync(settings.idm.tls.key),
-        cert: fs.readFileSync(settings.idm.tls.cert),
-        requestCert: true
-    };
-    server = https.createServer(options, function(req, res) { app(req, res); });
-}
-server.setMaxListeners(0);
+    var SERIOS = require("./serios/serios.js");
+    SERIOS.init(null, settings);
 
-SERIOS.init(server, settings);
-
-app.use("/", SERIOS.app);
-
-SERIOS.start().then(function() {
-    server.on('error', function(err) {
-        if (err.errno === "EADDRINUSE") {
-            console.error('Unable to listen on '+getListenPath());
-            console.error('Error: port in use');
-        } else {
-            console.error('Uncaught Exception:');
-            if (err.stack) {
-                console.error(err.stack);
-            } else {
-                console.error(err);
-            }
-        }
-        process.exit(1);
+    var app = express();
+    app.use("/", SERIOS.app);
+    SERIOS.start().then(function() {
+        app.listen(settings.server.port,
+                   settings.server.host,
+                   function () {
+                       process.tite = "SERIOS Server";
+                       console.log('Server now running at '+getListenPath());
+                   });
+    }).catch(function(err) {
+        console.log('Failed to start server');
+        console.log(err);
     });
-    server.listen(settings.server.port,
-                  settings.server.host,
-                  function () {
-                      process.tite = "SERIOS Server";
-                      console.log('Server now running at '+getListenPath());
-                  });
-}).catch(function(err) {
-    console.log('Failed to start server');
-    console.log(err);
-});
+}
+
 
 function getListenPath() {
     var listenPath = 'http' + (settings.server.tls ? 's' : '') + '://'+
