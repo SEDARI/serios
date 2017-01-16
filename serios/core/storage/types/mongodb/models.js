@@ -14,21 +14,21 @@ var uuid = require("uuid");
  *
  * @type {_mongoose.Model}
  */
-var Gateway = mongoose.model("Gateway", GatewaySchema());
+var Gateway = mongoose.model("Gateway", GatewaySchema(), "gateways");
 /**
  * The Service Object description is further explained in the
  * {@link https://github.com/sedari/serios-docs documentation on Github}.
  *
  * @type {_mongoose.Model}
  */
-var ServiceObject = mongoose.model("ServiceObject", ServiceObjectSchema());
+var ServiceObject = mongoose.model("ServiceObject", ServiceObjectSchema(), "serviceobjects");
 /**
  * The SensorData description is further explained in the
  * {@link https://github.com/sedari/serios-docs documentation on Github}.
  *
  * @type {_mongoose.Model}
  */
-var SensorData = mongoose.model("SensorData", SensorDataSchema());
+var SensorData = mongoose.model("SensorData", SensorDataSchema(), "sensordata");
 
 module.exports = {
     Gateway: Gateway,
