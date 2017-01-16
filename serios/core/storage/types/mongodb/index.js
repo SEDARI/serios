@@ -3,6 +3,8 @@
 */
 var clone = require("clone");
 var mongoose = require("mongoose");
+var rndString = require("randomstring");
+
 mongoose.Promise = global.Promise;
 
 var Gateway = require("../mongodb/models").Gateway;
@@ -137,6 +139,8 @@ function addServiceObject(newSo) {
 
     // transform servIoTicy format to serios format
     var transSO = transformSO2Serios(newSo);
+
+    transSO.api_token = rndString.generate();
 
     if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
         return evaluateGatewayAndAddServiceObject(gateway);

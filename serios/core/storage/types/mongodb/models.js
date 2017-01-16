@@ -109,6 +109,10 @@ function ServiceObjectSchema() {
                 validate: streamsValidator,
                 required: [true, 'Service Object streams required']
             },
+            api_token: {
+                type: String,
+                required: true
+            },
             policy: {
                 type: [],
                 required: false
@@ -140,7 +144,7 @@ function ServiceObjectSchema() {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({soID: savedSo.id});
+                    resolve({soID: savedSo.id, api_token: savedSo.api_token});
                 }
             });
         });
@@ -160,7 +164,7 @@ function ServiceObjectSchema() {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({soID: savedSo._id, gatewayID: savedSo.gatewayID});
+                    resolve({soID: savedSo._id, gatewayID: savedSo.gatewayID, api_token: savedSo.api_token});
                 }
             });
         });
@@ -182,7 +186,7 @@ function ServiceObjectSchema() {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({soID: savedSo.id});
+                    resolve({soID: savedSo.id, api_token: savedSo.api_token});
                 }
             });
         });

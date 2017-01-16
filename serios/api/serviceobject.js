@@ -34,10 +34,10 @@ function add(req, res) {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
     }).then(function () {
         return addSO(so);
+    }).then(function (r) {
+        res.status(200).json({soID: r.soID, gatewayID: r.gatewayID, api_token: r.api_token});
     }).catch(function (err) {
         res.status(507).json({msg: err});
-    }).then(function (r) {
-        res.status(200).json({soID: r.soID, gatewayID: r.gatewayID, msg: "OK. Service Object was added."});
     });
 }
 
