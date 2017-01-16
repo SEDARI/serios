@@ -18,7 +18,6 @@ module.exports = {
             // one of 'seconds', 'minutes', 'hours', 'days'.
             timeunit: "days"
         },
-
         testdbname: "serios-test",
         testuser: "seriosTest",
         testpassword: "seriosTest"
@@ -267,6 +266,7 @@ module.exports = {
         }
     },
     neros: {
+        uiPort : 3000,
         mqttReconnectTime: 15000,
 
         // Retry time in milliseconds for Serial port connections

@@ -13,6 +13,7 @@ var SERIOS = {
         api.init(httpServer, core);
 
         neros.init(core);
+        
         ui.init(httpServer, core);
     },
     start : function() {

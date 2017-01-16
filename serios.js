@@ -33,8 +33,6 @@ if (useCluster && cluster.isMaster) {
     }
 } else {
     var SERIOS = require("./serios/serios.js");
-    SERIOS.init(null, settings);
-
     var app = express();
 
     // ensure connections are closed after request
@@ -44,14 +42,17 @@ if (useCluster && cluster.isMaster) {
         next();
     });
 
+    var server = app.listen(settings.server.port, settings.server.host,
+                            function () {
+                                process.tite = "SERIOS Server";
+                                console.log('Server now running at '+getListenPath());
+                            });
+
+    SERIOS.init(server, settings);
     app.use("/", SERIOS.app);
+
     SERIOS.start().then(function() {
-        app.listen(settings.server.port,
-                   settings.server.host,
-                   function () {
-                       process.tite = "SERIOS Server";
-                       console.log('Server now running at '+getListenPath());
-                   });
+        console.log("SERIOS up and running.");
     }).catch(function(err) {
         console.log('Failed to start server');
         console.log(err);
