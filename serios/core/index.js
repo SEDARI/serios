@@ -13,7 +13,7 @@ function init(_settings, _api) {
     // init idm must be first
     mainApp = idm.init(settings);
     
-    storage.init(settings);
+    storage.init(settings.storage);
 }
 
 function start() {
@@ -29,5 +29,7 @@ module.exports = {
     
     get settings() { return settings; },
     get app() { return mainApp; },
-    get api() { return api; }
+
+    get api() { return api; },
+    get idm() { return idm; }
 };

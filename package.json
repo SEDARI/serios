@@ -10,15 +10,13 @@
     },
     "main": "serios.js",
     "scripts": {
+        "postinstall": "grunt build && node scripts/dbSetup.js",
         "start": "node serios.js",
-        "test" : "./node_modules/.bin/grunt"
+        "test" : "grunt"
     },
     "contributors": [
         {
             "name": "Daniel Schreckling"
-        },
-        {
-            "name": "Tobias Marktscheffel"
         },
         {
             "name": "Phil Werli",
@@ -32,19 +30,28 @@
         "Flow Control"
     ],
     "dependencies": {
-        "express": "^4.14.0",
-        "when": "3.7.7",
-        "node-uuid": "1.4.7",
-        "mongoose": "^4.6.0",
-        "async": "2.0.1",
-        "q": "1.4.1",
-        "body-parser": "1.15.2",
         "agile-idm-web-ui": "https://github.com/Agile-IoT/agile-idm-web-ui",
-        "neros" : "https://github.com/SEDARI/neros"
+        "agile-idm-core": "https://github.com/Agile-IoT/agile-idm-core.git",
+        "async": "2.0.1",
+        "body-parser": "1.15.2",
+        "express": "^4.14.0",
+        "mongodb": "2.2.21",
+        "mongoose": "^4.7.0",
+        "neros": "https://github.com/SEDARI/neros",
+        "passport": "0.3.2",
+        "q": "1.4.1",
+        "randomstring": "1.1.5",
+        "uuid": "3.0.0",
+        "when": "3.7.7",
+        "winston": "2.3.0"
     },
     "optionalDependencies": {
     },
     "devDependencies": {
+        "chai": "^3.5.0",
+        "chai-as-promised": "6.0.0",
+        "chai-http": "^3.0.0",
+        "clone": "2.0.0",
         "grunt": "1.0.1",
         "grunt-chmod": "1.1.1",
         "grunt-cli": "1.2.0",
@@ -66,6 +73,6 @@
         "supertest": "1.2.0"
     },
     "engines": {
-        "node": ">=0.12 <6.0.0"
+        "node": ">=4.0.0 <=7.2.1"
     }
 }

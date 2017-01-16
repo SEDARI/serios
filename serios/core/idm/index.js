@@ -1,71 +1,57 @@
+var idmWeb = require("agile-idm-web-ui");
 var express = require('express');
-var path = require('path');
 var passport = require('passport');
-var fs = require('fs');
+var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var session = require('express-session');
-var logger = require('morgan');
 var methodOverride = require('method-override');
-var idmWeb = require('agile-idm-web-ui');
+var session = require('express-session');
+var path = require('path');
 
-function init(settings) {    
-    var RouterProviers = idmWeb.RouterProviers;
-    var RouterApi = idmWeb.RouterApi;
+var errorHandler = require('./errorHandler');
 
-    var https = require('https');
+function init(settings) {
+
     var app = express();
-
+    
+    app.set('view engine', 'ejs');
     app.use(logger('dev'));
     app.use(cookieParser());
-    
-    app.use(bodyParser.json());
-    
+    app.use(bodyParser.urlencoded({
+        extended: true
+    }));
     app.use(methodOverride());
-    app.use(session({  secret: 'keyboard cat',
-                       resave: false,
-                       saveUninitialized: false
-                    }));
+    app.use(session({
+        secret: 'keyboard cat',
+        resave: false,
+        saveUninitialized: false
+    }));
     app.use(passport.initialize());
     app.use(passport.session());
 
+    //set serializer for users and clients
+    idmWeb.serializer(settings.idm.ui, settings.idm.core);
+    
     //set up external providers with passport
-    idmWeb.serializer(settings.idm);
-    idmWeb.authStrategies(settings.idm);
-    
-    var providersRouter = new RouterProviers(settings.idm, app);
-    app.use("/auth",providersRouter);
+    var strategies = idmWeb.authStrategies(settings.idm.ui, settings.idm.core);
 
-    //set up authentication API
-    idmWeb.apiStrategies(settings.idm);
-    var apiRouter = new RouterApi(app);
-    app.use("/api",apiRouter);
-    
+    //set ahentication endpoints to authenticate with different means (webid, oauth2, etc)
+    app.use("/idm/auth", idmWeb.routerProviders(strategies));
+
+    //set up entities API
+    app.use("/idm/api/v1", idmWeb.routerApi(settings.idm.core, strategies));
+
     //set up static sites
-    app.use("/static", express.static(path.join(__dirname, '../../../public/idm/static')));
+    app.use("/idm/static", express.static(path.join(__dirname, './static')));
 
-    //NOTE this demo registers a sensor based on the request coming
-    // from the browser (authenticating through cookies with passport)
-    //also this example uses idm-core for the registration
-    /* var Demo = require('./demo');
-    d = new Demo(app);*/
-
-    app.get("/", function(req,res){
-        res.redirect("/static/index.html");
-    });
-
-    // test authentication
-    function ensureAuthenticated(req, res, next) {
-        if (req.isAuthenticated()) { return next(); }
-        res.redirect('/');
-    }
+    //oauth2orize server (this allows IDM to work as an Oauth2 provider to apps)
+    var oauth2 = idmWeb.oauth2orizeServer(settings.idm.ui, settings.idm.core);
+    idmWeb.oauth2ServerStrategies(settings.idm.ui, settings.idm.core);
+    app.use("/idm/oauth2",idmWeb.routerOauth2(settings.idm.ui, settings.idm.core));
+    app.use("/idm/",idmWeb.routerSite(strategies));
+    app.use(errorHandler);
 
     return app;
-}
-
-
-function auth(req, res) {
-    res.json({ msg : "Lets authenticate" });
 }
 
 module.exports = {

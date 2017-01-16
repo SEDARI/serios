@@ -42,7 +42,10 @@ module.exports = function(grunt) {
                 reporter: 'spec'
             },
             core: {
-                src: ['test/**/*_spec.js'], 
+                src: ['test/mongodb-test.js', "test/**/*_spec.js"]
+                // TODO Phil 15/11/16: The above should be replaced by the below, but the over tests are not working yet
+                // src: ['test/**/*-test.js', 'test/**/*_spec.js']
+
             }
         },
         jshint: {
@@ -308,6 +311,12 @@ module.exports = function(grunt) {
                         src: '**',
                         expand: true,
                         dest: 'public/idm/static'
+                    },
+                    {
+                        cwd: 'node_modules/agile-idm-web-ui/views',
+                        src: '**',
+                        expand: true,
+                        dest: 'views'
                     },
                     {
                         src: 'node_modules/neros/CHANGELOG.md',

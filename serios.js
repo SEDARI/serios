@@ -1,14 +1,5 @@
 #!/usr/bin/env node
-
-var http = require('http');
-var https = require('https');
 var express = require('express');
-var util = require('util');
-var fs = require('fs');
-
-var SERIOS = require("./serios/serios.js");
-
-var app = express();
 
 var settingsFile = "./settings";
 try {
@@ -23,47 +14,50 @@ try {
     process.exit();
 }
 
-if(!settings.server.tls) {
-    server = http.createServer(function(req, res) { app(req, res); });
-} else {
-    var options = {
-        key: fs.readFileSync(settings.idm.tls.key),
-        cert: fs.readFileSync(settings.idm.tls.cert),
-        requestCert: true
-    };
-    server = https.createServer(options, function(req, res) { app(req, res); });
+var useCluster = false;
+var cluster = null;
+if(settings.server && settings.server.cluster && settings.server.cluster > 0) {
+    cluster = require('cluster');
+    useCluster = true;
 }
-server.setMaxListeners(0);
 
-SERIOS.init(server, settings);
+if (useCluster && cluster.isMaster) {
+    // Count the machine's CPUs
+    var cpuCount = require('os').cpus().length;
+    if(settings.server.cluster < cpuCount)
+        cpuCount = settings.server.cluster;
 
-app.use("/", SERIOS.app);
+    // Create a worker for each CPU
+    for (var i = 0; i < cpuCount; i += 1) {
+        cluster.fork();
+    }
+} else {
+    var SERIOS = require("./serios/serios.js");
+    SERIOS.init(null, settings);
 
-SERIOS.start().then(function() {
-    server.on('error', function(err) {
-        if (err.errno === "EADDRINUSE") {
-            console.error('Unable to listen on '+getListenPath());
-            console.error('Error: port in use');
-        } else {
-            console.error('Uncaught Exception:');
-            if (err.stack) {
-                console.error(err.stack);
-            } else {
-                console.error(err);
-            }
-        }
-        process.exit(1);
+    var app = express();
+
+    // ensure connections are closed after request
+    // has been served
+    app.use(function(req, res, next) {
+        res.setHeader('Connection', 'close');
+        next();
     });
-    server.listen(settings.server.port,
-                  settings.server.host,
-                  function () {
-                      process.tite = "SERIOS Server";
-                      console.log('Server now running at '+getListenPath());
-                  });
-}).otherwise(function(err) {
-    console.log('Failed to start server');
-    console.log(err);
-});
+
+    app.use("/", SERIOS.app);
+    SERIOS.start().then(function() {
+        app.listen(settings.server.port,
+                   settings.server.host,
+                   function () {
+                       process.tite = "SERIOS Server";
+                       console.log('Server now running at '+getListenPath());
+                   });
+    }).catch(function(err) {
+        console.log('Failed to start server');
+        console.log(err);
+    });
+}
+
 
 function getListenPath() {
     var listenPath = 'http' + (settings.server.tls ? 's' : '') + '://'+
