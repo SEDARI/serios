@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 var express = require('express');
-var cluster = require('cluster');
 
 var settingsFile = "./settings";
 try {
@@ -15,9 +14,18 @@ try {
     process.exit();
 }
 
-if (cluster.isMaster) {
+var useCluster = false;
+var cluster = null;
+if(settings.server && settings.server.cluster && settings.server.cluster > 0) {
+    cluster = require('cluster');
+    useCluster = true;
+}
+
+if (useCluster && cluster.isMaster) {
     // Count the machine's CPUs
     var cpuCount = require('os').cpus().length;
+    if(settings.server.cluster < cpuCount)
+        cpuCount = settings.server.cluster;
 
     // Create a worker for each CPU
     for (var i = 0; i < cpuCount; i += 1) {
