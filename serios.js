@@ -28,6 +28,14 @@ if (cluster.isMaster) {
     SERIOS.init(null, settings);
 
     var app = express();
+
+    // ensure connections are closed after request
+    // has been served
+    app.use(function(req, res, next) {
+        res.setHeader('Connection', 'close');
+        next();
+    });
+
     app.use("/", SERIOS.app);
     SERIOS.start().then(function() {
         app.listen(settings.server.port,
