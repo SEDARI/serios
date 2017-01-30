@@ -5,11 +5,11 @@ var tokens = require('../db/tokens');
 
 function router(conf, router) {
 
-  router.route('/app/account').get(login.ensureLoggedIn('/auth/example/'), function (req, res) {
+  router.route('/app/account').get(login.ensureLoggedIn('/'), function (req, res) {
     res.send(req.user);
   });
 
-  router.route('/app/token').get(login.ensureLoggedIn('/auth/example/'), function (req, res) {
+  router.route('/app/token').get(login.ensureLoggedIn('/'), function (req, res) {
     tokens.find(req.user.id, function (error, token) {
       res.send(token);
     });

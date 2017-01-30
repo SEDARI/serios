@@ -12,25 +12,28 @@ module.exports = {
     get: get,
     remove: remove,
 
+    checkToken: checkToken,
     getAllSoForGateway: getAllSoForGateway,
     getAllSoForUser: getAllSoForUser
 
 };
 
 function add(req, res) {
-    var authorization = req.headers.authorization;
     var so = req.body;
-    
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function (userID) {
-        so.ownerID = userID;
-        // TODO: remove dummy user
-        so.ownerID = 1;
-        // TODO: ensure validation again after adjustment to servioticy format
-        // return validateSyntax(so);
-        return Promise.resolve();
-    }).catch(function () {
+    var userID;
+
+    if(req.user && req.user.id)
+        userID = req.user.id;
+    else {
+        res.status(401).json({msg: "Request unauthorized."});
+        return;
+    }
+    so.ownerID = userID;
+
+    // TODO: ensure validation again after adjustment to servioticy format
+    // TODO: reorganize catches
+    // validateSyntax(so);
+    Promise.resolve().catch(function (err) {
         res.status(400).json({msg: "Bad Request. Bad syntax used for Service Object."});
     }).then(function () {
         return addSO(so);
@@ -40,6 +43,33 @@ function add(req, res) {
         res.status(507).json({msg: err});
     });
 }
+
+function checkToken(req, res) {
+    var soID = req.params.soID;
+    
+    var token = null;
+    if(req.headers.authorization)
+        token = req.headers.authorization.slice(7);
+    if(token === null)
+        return Promise.resolve(false);
+    
+    return new Promise(function(resolve, reject) {
+        getSO(soID).then(function(so) {
+            if(so.api_token === token) {
+                req.validtoken = token;
+                hasToken = true;
+            } else {
+                req.validtoken = null;
+                req.so = so;
+                hasToken = false;
+            }
+            resolve(hasToken);
+        }).catch(function(err) {
+            // most likely, SO with soID does not exist
+            reject();
+        });
+    });
+};
 
 function update(req, res) {
     var authorization = req.headers.authorization;
@@ -82,18 +112,24 @@ function get(req, res) {
 }
 
 function remove(req, res) {
-    var authorization = req.headers.authorization;
     var soID = req.params.soID;
+    var userID;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function () {
+    if(req.user && req.user.id)
+        userID = req.user.id;
+    else {
+        res.status(401).json({msg: "Request unauthorized."});
+        return;
+    }
+
+    checkPermission(userID, soID).then(function () {
         return removeSO(soID);
-    }).catch(function () {
-        res.status(400).json({msg: "Bad Request. Could not find Service Object."});
     }).then(function () {
         res.status(200).json({msg: "OK. Service Object was removed."});
-    });
+    }).catch(function (err) {
+        res.status(400).json({msg: "Bad Request. Could not find Service Object."});
+        // res.status(403).json({msg: "Forbidden. Access was denied!"});
+    })
 }
 
 function getAllSoForGateway(req, res) {
@@ -112,17 +148,20 @@ function getAllSoForGateway(req, res) {
 }
 
 function getAllSoForUser(req, res) {
-    var authorization = req.headers.authorization;
+    var userID;
 
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function (userID) {
-        return allSoForUser(userID);
+    if(req.user && req.user.id)
+        userID = req.user.id;
+    else {
+        res.status(401).json({msg: "Request unauthorized."});
+        return;
+    }
+
+    allSoForUser(userID).then(function (sos) {
+        res.status(200).json(sos);
     }).catch(function () {
         res.status(400).json({msg: "Bad Request. Could not find Service Objects for given parameters."});
-    }).then(function (sos) {
-        res.status(200).json(sos);
-    });
+    })
 }
 
 /**

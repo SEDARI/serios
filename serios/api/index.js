@@ -1,6 +1,8 @@
 var when = require('when');
 var express = require('express');
 var bodyParser = require('body-parser');
+var passport = require('passport');
+var pjson = require('../../package.json');
 
 // API files for different data types
 var serviceObject = require('./serviceobject');
@@ -19,34 +21,6 @@ var settings;
 var server;
 var core;
 
-function testIdm(req, res) {
-
-    if(req.user === undefined || req.user === undefined) {
-        res.status(403).json({ msg: "User not authenticated or cookies disabled." });
-        return Promise.reject();
-    }
-    
-    var token = req.user.token;
-    var action = "create";
-    var entity_type = "/Sensor";
-    var entity_id = "323";
-    var data = {
-        "name": "Barack Obam2a",
-        "token": "DC 20500"
-    };
-    
-    var prom = core.idm.core.createEntity(token, entity_id, entity_type, data);
-    prom.then(function(data){
-        console.log('data from api: '+JSON.stringify(data));
-    },function(error) {
-        console.log('error: '+error);
-    }).catch(function(error){
-        console.log('something went wrong in the example: '+error);
-    });
-    
-    return prom;
-}
-
 function init(_server, _core) {
     server = _server;
     settings = _core.settings;
@@ -57,28 +31,61 @@ function init(_server, _core) {
     app.use(bodyParser.urlencoded({extended: true}));
     app.use(errorHandler);
 
+    var checkAuth = function(req, res, next) {
+        // TODO: check whether ensured-login would be a better choice
+        if(req.user) {
+            next();
+        } else {
+            console.log("check bearer");
+            passport.authenticate('agile-bearer', {session: false})(req, res, next);
+        }
+    };
+
+    var checkAuthOrToken = function(req, res, next) {
+        // TODO: as above - check correctness
+        if(req.user) {
+            next();
+        } else {
+            serviceObject.checkToken(req, res).then(function(hasToken) {
+                if(hasToken)
+                    next();
+                else
+                    passport.authenticate('agile-bearer', {session: false})(req, res, next);
+            }, function(err) {
+                res.status(403).end();
+            });
+        }
+    }
+
+    var checkPermission = function(req, res, next) {
+        // TODO: check flow contorl permission on SO
+        // TODO: Ensure that requests with access_token can always pass
+        
+        // default behaviour: accept
+        next();
+    }
+    
     app.get("/api/version", getVersion);
 
-    // API for Gateways
+    // API for Gateways - to be tested!
     app.post("/api/gateway", gateway.add);
     app.put("/api/gateway/:gatewayID", gateway.update);
     app.get("/api/gateway/:gatewayID", gateway.get);
     app.delete("/api/gateway/:gatewayID", gateway.remove);
-
     app.get("/api/gateway", gateway.getAllGatewaysForUser);
+    app.get("/api/gateway/:gateway/sos", serviceObject.getAllSoForGateway);
 
-    // API for Service Objects
-    app.post("/api/", serviceObject.add);
-    app.put("/api/:soID", serviceObject.update);
-    app.get("/api/:soID", serviceObject.get);
-    app.delete("/api/:soID", serviceObject.remove);
-
-    app.get("/api", serviceObject.getAllSoForUser);
-    app.get("/api/:gateway/sos", serviceObject.getAllSoForGateway);
+    // API for Service Objects - tested
+    app.post("/api/", checkAuth, serviceObject.add);
+    app.put("/api/:soID", checkAuth, serviceObject.update);
+    app.get("/api/:soID", checkAuth, serviceObject.get);
+    app.delete("/api/:soID", checkAuth, serviceObject.remove);
+    app.get("/api/", checkAuth, serviceObject.getAllSoForUser);
 
     // API for Sensor Data
-    app.put("/api/:soID/streams/:streamID", sensorData.add);
-    app.get("/api/:soID/streams/:streamID/:options", sensorData.getDataForStream);
+    app.put("/api/:soID/streams/:streamID", checkAuthOrToken, sensorData.add);
+    app.get("/api/:soID/streams/:streamID/:options", checkAuthOrToken, checkPermission, sensorData.getDataForStream);
+
     // TODO Phil 18/11/16: maybe add getting sensor data for gateway
     app.get("/api/data/:options", sensorData.getDataForUser);
     app.delete("/api/:soID/streams/:streamID", sensorData.remove);
@@ -87,7 +94,7 @@ function init(_server, _core) {
 }
 
 function getVersion(req, res) {
-    res.json({version: API_VERSION});
+    res.json({version: pjson.version});
 }
 
 function start() {

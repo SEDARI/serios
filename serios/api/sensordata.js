@@ -59,17 +59,11 @@ function remove(req, res) {
 }
 
 function getSensorDataForStream(req, res) {
-    var authorization = req.headers.authorization;
-
-    checkPermission(authorization).catch(function () {
-        res.status(403).json({msg: "Forbidden. Access was denied!"});
-    }).then(function () {
-        return getSensorDataForStream(req.params.soID, req.params.streamID, req.params.options);
-    }).then(function (data) {
+    getSensorDataForStream(req.params.soID, req.params.streamID, req.params.options).then(function (data) {
         res.status(200).json({data: data});
     }).catch(function (err) {
         console.log(err);
-        res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
+        res.status(400).end();
     });
 }
 

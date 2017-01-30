@@ -275,7 +275,7 @@ function updateServiceObject(soID, newSo) {
  * @returns {Promise} whether the Service Object exits or not.
  */
 function getServiceObject(soID) {
-    return ServiceObject.findById(soID).lean().select("id gatewayID name description streams").exec().then(function (mod) {
+    return ServiceObject.findById(soID).lean().select("id gatewayID name description streams api_token").exec().then(function (mod) {
         return new Promise(function (resolve, reject) {
             if (!mod) {
                 reject();
@@ -536,7 +536,7 @@ function getSensorDataForStream(soID, streamID, options) {
 
         return new Promise(function (resolve, reject) {
             if (results.length === 0) {
-                reject();
+                resolve(null);
             } else {
                 resolve(results);
             }

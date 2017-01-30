@@ -8,7 +8,8 @@ var util = require('./util');
 
 function router(conf, idm_conf, router) {
 
-  var url = idm_conf.protocol + "://" + idm_conf.host + ":" + idm_conf.port + "/api/v1";
+    var url = idm_conf.protocol + "://" + idm_conf.host + ":" + idm_conf.port + "/idm/api/v1";
+    
     /*
      reading user
     */
@@ -150,13 +151,13 @@ function router(conf, idm_conf, router) {
   /*
     deleting user
   */
-  router.route('/delete_group').get(login.ensureLoggedIn('/auth/example/'), function (req, res) {
+  router.route('/idm/delete_group').get(login.ensureLoggedIn('/auth/example/'), function (req, res) {
     res.render("find_group", {
       "action": "delete"
     });
   });
 
-  router.route('/delete_group').post(login.ensureLoggedIn('/auth/example/'), function (req, res) {
+  router.route('/idm/delete_group').post(login.ensureLoggedIn('/auth/example/'), function (req, res) {
     var action = "delete group";
     //first we read the token
     tokens.find(req.user.id, function (error, accesstoken) {

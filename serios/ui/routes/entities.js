@@ -8,7 +8,7 @@ var util = require('./util');
 
 function router(conf, idm_conf, router) {
 
-  var url = idm_conf.protocol + "://" + idm_conf.host + ":" + idm_conf.port + "/api/v1";
+  var url = idm_conf.protocol + "://" + idm_conf.host + ":" + idm_conf.port + "/idm/api/v1";
 
   /*
     reading entity
@@ -315,7 +315,6 @@ function router(conf, idm_conf, router) {
       var entity_type = req.body.entity_type;
       var entity_id = req.body.entity_id;
       var attribute_name = req.body.attribute_name;
-      var attribute_value = req.body.attribute_value;
       var action = "set entity attribute";
 
       //build http options

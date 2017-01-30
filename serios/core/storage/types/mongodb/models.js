@@ -339,9 +339,10 @@ function SensorDataSchema() {
                 type: String,
                 required: true
             },
+            // TODO: Ensure that value is required but allows also empty strings
             value: {
                 type: String,
-                required: true
+                required: false,
             }
         }, { _id: false });
         return schema;

@@ -19,7 +19,9 @@ var SERIOS = {
     start : function() {
         return core.start().
             then(function() { return neros.start(); }).
-            then(function() { return api.start(); });
+            then(function() {
+                return api.start();    
+            });
     },
     stop : function() {
         return core.stop().then(function() { return api.stop(); });
