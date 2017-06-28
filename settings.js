@@ -24,52 +24,5 @@ module.exports = {
         testdbname: "serios-test",
         testuser: "seriosTest",
         testpassword: "seriosTest"
-    },
-    security: {
-            pdp : {
-                ulocks: {
-                    entityTypes : {
-                        "/any"    :  0,
-                        "/group"  :  1,
-                        "/user"   :  2,
-                        "/sensor" :  3,
-                        "/client" :  4,
-                        "/api"    :  5,
-                        "/const"  :  6,
-                        "/attr"   :  6,
-                        "/prop"   :  6,
-                        "/var"    :  6,
-                    },
-                    locks: "./security/Locks/",
-                    actions: "./security/Actions"
-                }
-            },
-        pap: {
-            server: {
-                "host": "localhost",
-                port: 1234,
-                path: "/pap/",
-                tls: false,
-                cluster: 1
-            },
-            storage: {
-                type: "mongodb",
-                host: "localhost",
-                port: 27017,
-                password: "",
-                user: "",
-                dbName: "pap-database",
-                collection: "policies",
-                
-                cache: {
-                    enabled: false,
-                    TTL: 600,
-                    sync: {
-                        type: "redis",
-                        channel: "policyUpdates"
-                    }
-                }
-            }
-        }
     }
 };
