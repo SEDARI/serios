@@ -5,7 +5,7 @@
  */
 
 var checkPermission = require("./permissionchecker").checkPermission;
-var storage = require("../core/storage");
+var storage = require("../storage");
 
 module.exports = {
     add: add,

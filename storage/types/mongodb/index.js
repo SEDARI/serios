@@ -5,6 +5,9 @@ var clone = require("clone");
 var mongoose = require("mongoose");
 var rndString = require("randomstring");
 
+var w = require('winston');
+w.level = process.env.LOG_LEVEL;
+
 mongoose.Promise = global.Promise;
 
 var Gateway = require("../mongodb/models").Gateway;
@@ -41,13 +44,27 @@ module.exports = {
     getSensorDataForUser: getSensorDataForUser
 };
 
+function valid(o) {
+    return o !== undefined && o !== null;
+}
+
 /**
  * Initializes the whole database.
  *
  * @param settings the settings for the mongodb database.
  */
 function init(settings) {
-    mongoose.connect("mongodb://"+settings.user+":"+settings.password+"@"+settings.host+":"+settings.port+"/"+settings.dbname);
+    return new Promise(function(resolve, reject) {
+        try {
+            mongoose.connect("mongodb://"+settings.user+":"+settings.password+"@"+settings.host+":"+settings.port+"/"+settings.dbname).then(function() {
+                resolve();
+            }, function(e) {
+                reject(e);
+            });
+        } catch(e) {
+            reject(e);
+        }
+    });
 }
 
 /**
@@ -143,6 +160,7 @@ function addServiceObject(newSo) {
     transSO.api_token = rndString.generate();
 
     if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
+        w.debug("evaluateGatewayAndAddServiceObject with ", gateway);
         return evaluateGatewayAndAddServiceObject(gateway);
     } else {
         return ServiceObject.saveWithoutGateway(new ServiceObject(transSO));
@@ -176,13 +194,13 @@ function addServiceObject(newSo) {
             };
             return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                 if (foundGateway) {
-                    transSO.gatewayID = foundGateway._id;
+                    transSO.gateway = foundGateway._id;
                     return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(transSO));
                 } else {
                     // no existing gateway found? create a new one with the given information
-                    gateway.ownerID = transSO.ownerID;
+                    gateway.owner = transSO.owner;
                     return addGateway(gateway).then(function (id) {
-                        transSO.gatewayID = id;
+                        transSO.gateway = id;
                         return ServiceObject.saveSoGetSoIdAndGatewayId(new ServiceObject(transSO));
                     });
                 }
@@ -190,6 +208,8 @@ function addServiceObject(newSo) {
         }
     }
 }
+
+// TODO: COPY LATEST PHIL VERSION!!!
 
 /**
  * Update a Service Object with given values in the database.
@@ -204,20 +224,27 @@ function updateServiceObject(soID, newSo) {
         runValidators: true,
         new: true
     };
-
     var transSO = transformSO2Serios(newSo);
 
     return ServiceObject.findById(soID).exec().then(function (oldSo) {
+        if(oldSo === null) {
+            return Promse.reject
+        }
+        
+        if(!valid(transSO.api_token))
+            transSO.api_token = oldSo.api_token;
+        
         var gateway = transSO.gateway;
         var options;
-        if (gateway && (gateway.gatewayID || (gateway.name && gateway.URL))) {
-            if (gateway.gatewayID && oldSo.gatewayID == gateway.gatewayID) {
+
+        if (gateway && (gateway.gateway || (gateway.name && gateway.URL))) {
+            if (gateway.gateway && oldSo.gateway == gateway.gateway) {
                 return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
-                    return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+                    return Promise.resolve({id: updatedSO._id, gateway: updatedSO.gateway});
                 });
-            } else if (gateway.gatewayID) {
+            } else if (gateway.gateway) {
                 options = {
-                    _id: gateway.gatewayID
+                    _id: gateway.gateway
                 };
                 if (gateway.URL) {
                     options.URL = gateway.URL;
@@ -227,10 +254,10 @@ function updateServiceObject(soID, newSo) {
                 }
                 return Gateway.findOne(options).lean().exec().then(function (foundGateway) {
                     if (foundGateway) {
-                        transSO.gatewayID = foundGateway._id;
+                        transSO.gateway = foundGateway._id;
                         delete transSO.gateway;
                         return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
-                            return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+                            return Promise.resolve({id: updatedSO._id, gateway: updatedSO.gateway});
                         });
                     } else {
                         return Promise.reject(new Error("Error! Could not find Gateway!"));
@@ -243,27 +270,36 @@ function updateServiceObject(soID, newSo) {
                 };
                 return Gateway.findOne(options).exec().then(function (foundGateway) {
                     if (foundGateway) {
-                        transSO.gatewayID = foundGateway._id;
+                        transSO.gateway = foundGateway._id;
                         return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
-                            return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+                            return Promise.resolve({id: updatedSO._id, gateway: updatedSO.gateway});
                         });
                     } else {
                         // no existing gateway found? create a new one with the given information
-                        gateway.ownerID = transSO.ownerID;
+                        gateway.owner = transSO.owner;
                         return addGateway(gateway).then(function (id) {
-                            transSO.gatewayID = id;
+                            transSO.gateway = id;
                             return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
-                                return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+                                return Promise.resolve({id: updatedSO._id, gateway: updatedSO.gateway});
                             });
                         });
                     }
                 });
             }
         } else {
-            delete transSO.gatewayID;
+            delete transSO.gateway;
             return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
-                return Promise.resolve({soID: updatedSO._id, gatewayID: updatedSO.gatewayID});
+                // console.log("updatedSO: ", updatedSO);
+                return Promise.resolve({id: updatedSO._id, gateway: updatedSO.gateway});
+            }, function(e) {
+                console.log("Error: ", e);
+                return Promise.reject(e);
             });
+        }
+    }, function(err) {
+        console.log("ERROR: ", err);
+        if (err instanceof NotFoundError) {
+            res.status(400).json({msg: "Bad Request. Could not find Service Object."});
         }
     });
 }
@@ -277,10 +313,13 @@ function updateServiceObject(soID, newSo) {
 function getServiceObject(soID) {
     return ServiceObject.findById(soID).lean().select("id gatewayID name description streams api_token").exec().then(function (mod) {
         return new Promise(function (resolve, reject) {
-            if (!mod) {
-                reject();
-            } else {
-                resolve(transformSO2Servioticy(mod));
+            if(mod === null)
+                resolve(null)
+            else {
+                mod.id = mod._id;
+                delete mod._id;
+                r = transformSO2Servioticy(mod);
+                resolve(r);
             }
         });
     });

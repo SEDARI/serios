@@ -78,8 +78,15 @@ module.exports = {
  * @param settings the settings for the storage.
  */
 function init(settings) {
-    var type = settings.type;
-    storage = require("./types/" + type);
-    storage.init(settings);
+    return new Promise(function(resolve, reject) {
+        var type = settings.type;
+        // TODO: add some error tolerance
+        storage = require("./types/" + type);
+        storage.init(settings).then(function() {
+            resolve();
+        }, function(e) {
+            reject(e);
+        });
+    });
 }
 

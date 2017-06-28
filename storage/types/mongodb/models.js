@@ -46,7 +46,7 @@ function GatewaySchema() {
                 type: String,
                 default: uuid
             },
-            ownerID: {
+            owner: {
                 type: String,
                 required: true
             },
@@ -86,11 +86,11 @@ function ServiceObjectSchema() {
                 type: String,
                 default: uuid
             },
-            ownerID: {
+            owner: {
                 type: String,
                 required: [true, 'Service Object ownerID required']
             },
-            gatewayID: {
+            gateway: {
                 type: String,
                 required: false
             },
@@ -112,10 +112,6 @@ function ServiceObjectSchema() {
             api_token: {
                 type: String,
                 required: true
-            },
-            policy: {
-                type: [],
-                required: false
             }
         },
         {timestamps: true},
@@ -144,7 +140,7 @@ function ServiceObjectSchema() {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({soID: savedSo.id, api_token: savedSo.api_token});
+                    resolve({id: savedSo._id, api_token: savedSo.api_token});
                 }
             });
         });
@@ -164,7 +160,7 @@ function ServiceObjectSchema() {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({soID: savedSo._id, gatewayID: savedSo.gatewayID, api_token: savedSo.api_token});
+                    resolve({id: savedSo._id, gateway: savedSo.gateway, api_token: savedSo.api_token});
                 }
             });
         });
@@ -186,7 +182,7 @@ function ServiceObjectSchema() {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve({soID: savedSo.id, api_token: savedSo.api_token});
+                    resolve({id: savedSo._id, api_token: savedSo.api_token});
                 }
             });
         });
@@ -256,16 +252,16 @@ function ServiceObjectSchema() {
  */
 function SensorDataSchema() {
     var schema = mongoose.Schema({
-        ownerID: {
+        owner: {
             type: String,
             // required: [true, 'Sensor data ownerID required']
             required: false
         },
-        soID: {
+        id: {
             type: String,
             required: true
         },
-        streamID: {
+        stream: {
             type: String,
             required: true
         },
