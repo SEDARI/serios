@@ -48,3 +48,5 @@ gen
 
 public/
 *.sqlite3
+
+**~
