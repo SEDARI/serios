@@ -1,503 +1,1257 @@
 process.env.NODE_ENV = 'test';
 
+if (!global.Promise) {
+    global.Promise = require('q');
+}
+
 var http = require("http");
 var express = require("express");
+var app = express();
 
 var chai = require("chai");
-var assert = chai.assert;
-var httpChai = require("chai-http");
-chai.use(httpChai);
+var should = chai.should();
+var expect = chai.expect;
 
-var serios = require("../serios/serios.js");
-var core = require("../serios/core");
+chai.use(require("chai-http"));
+chai.use(require("chai-as-promised"));
+
+var clone = require("clone");
+var uuid = require("uuid");
+
+var mongoose = require("mongoose");
+
 var settings = require("../settings");
+var url_prefix = "/serios";
+
+var serios = null;
 var server = null;
 
-// TODO Phil 05/10/16: get test user
-var user = "";
-var password = "";
-
 before(function (done) {
+    serios = require("../serios.js")(function() {
+        server = serios.server;
+        done();
+    });
+
+    
+    /* settings.storage.location = "mongodb://localhost/serios-testserver";
     server = http.createServer(function (req, res) {
-        var app = express();
         app(req, res);
     });
     serios.init(server, settings);
-    done();
+    app.use("/", serios.app);
+    serios.start();*/
+    // done();
 });
 
 after(function (done) {
-    server.stop();
+    /*server.close();
+    serios.stop();*/
     done();
 });
 
 describe("API", function () {
-    // TODO Phil 24/09/16: actually make correct service objects
+    var userID = uuid();
+
+    /*
+     * The following objects will be used in the whole test cases.
+     */
+    var so = {
+        name: "Smart Home 1 Weather Sensors",
+        description: "This Service Object holds all weather related sensors of Smart Home 1.",
+        public: true,
+        streams: {
+            "Weatherboard" : {
+                description: "The sensor that measures temperature, humidity and brightness of the Smart Home.",
+                channels: [
+                    {
+                        name: "temperate1",
+                        type: "Number",
+                        unit: "Grad Celsius"
+                    },
+                    {
+                        name: "temperate2",
+                        type: "Number",
+                        unit: "Grad Celsius"
+                    },
+                    {
+                        name: "humidity",
+                        type: "Number",
+                        unit: "Relative Humidity"
+                    },
+                    {
+                        name: "brightness",
+                        type: "Number",
+                        unit: "Lux"
+                    }
+                ]
+            },
+            "Location Sensor": {
+                description: "The sensor that measures the location of the Smart Home.",
+                channels: [
+                    {
+                        name: "latitude",
+                        type: "Number",
+                        unit: "Degrees"
+                    },
+                    {
+                        name: "longitude",
+                        type: "Number",
+                        unit: "Degrees"
+                    }
+                ]
+            }
+        },
+        gateway: {
+            name: "Smart Home 1",
+            URL: "https://gateway_test.com/dir/to/my/gateway/"
+        }
+    };
+
+    var gateway = {
+        "name": "Smart Home 1",
+        "URL": "https://gateway_test.com/dir/to/my/gateway/",
+        "port": 443,
+        "protocol": "HTTPS"
+    };
+
+    var soWithoutGateway = clone(so);
+    delete soWithoutGateway.gateway;
+
+    // TODO Phil 23/11/16: test for incorrect json syntax
+
     describe("Service Objects", function () {
+
+        var badSyntaxSO = {
+            name: "badSyntaxSO",
+            description: "Missing public and streams attributes",
+            gateway: {
+                name: "gateway1",
+                URL: "url.to.the.gateway"
+            }
+        };
+
         describe('add ServiceObject', function () {
-            it("Should accept a serving object successfully", function (done) {
-                var correctSO = {};
-                chai.request(server)
-                    .post("/")
-                    .auth(user, password)
-                    .send(correctSO)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("soID");
-                        done();
+            // TODO Phil 21/11/16: add gateway with adding service object
+            var soID;
+            var gID;
+            afterEach(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        if (soID) {
+                            return chai.request(app)
+                                .del(url_prefix + "/" + soID)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                });
+                        }
+                    }).then(function () {
+                        if (gID) {
+                            return chai.request(app)
+                                .del(url_prefix + "/gateway/" + gID)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                });
+                        }
                     });
             });
 
-            it("Should reject a service object due to bad syntax", function (done) {
-                var incorrectSO = {};
-                chai.request(server)
-                    .post("/")
-                    .auth(user, password)
-                    .send(incorrectSO)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
-                    })
+            it("Should accept a serving object successfully", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(soWithoutGateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("id");
+                        soID = res.body.soID;
+                        gID = null;
+                    });
+            });
+
+            it("Should accept a service object that adds a gateway successfully", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(so)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        // console.log(">>> res: ", res.body);
+                        expect(res.body).to.have.property("id");
+                        expect(res.body).to.have.property("gateway");
+                        soID = res.body.soID;
+                        gID = res.body.gatewayID;
+                    });
+            });
+
+            // TODO: re-enable as soon as syntax checking is in place again
+            /* it("Should reject a service object due to bad syntax", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(badSyntaxSO)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                        soID = null;
+                        gID = null;
+                    });
+            });*/
+
+            it("Should reject a service object due to missing authentication", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Content-Type", "application/json")
+                    .send(so)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                        soID = null;
+                        gID = null;
+                    });
             });
         });
 
         describe('get ServiceObject', function () {
-            it("Should accept request and get ServiceObject successfully", function (done) {
-                    var soID = "jsdj93d3ijd3jd3";
-                    chai.request(server)
-                        .get("/" + soID)
-                        .auth(user, password)
-                        .end(function (err, res) {
-                            res.should.have.status(200);
-                            res.body.should.have.property("gatewayID");
-                            res.body.should.have.property("name");
-                            res.body.should.have.property("description");
-                            res.body.should.have.property("streams");
-                            done();
+            var soID;
+            before(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(soWithoutGateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("id");
+                        soID = res.body.id;
+                    });
+            });
+
+            after(function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + soID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                    });
+            });
+
+            it("Should accept request and get ServiceObject successfully", function () {
+                    return chai.request(server)
+                        .get(url_prefix + "/" + soID)
+                        .set("Authorization", userID)
+                        .then(function (res) {
+                            expect(res).to.have.status(200);
+                            // console.log("RESPONSE: ", res.body);
+                            expect(res.body).to.have.property("name");
+                            expect(res.body).to.have.property("description");
+                            expect(res.body).to.have.property("streams");
                         });
                 }
             );
 
-            it("Should reject request as the service object was not found", function (done) {
-                chai.request(server)
-                    .get("/" + "DEF_A_WRONG_SO_ID")
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
-                    })
+            it("Should reject request as the service object was not found", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/" + "wrong_soID")
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
             });
 
-            it("Should reject request due to missing authentication", function (done) {
-                var soID = "jsdj93d3ijd3jd3";
-                chai.request(server)
-                    .get("/" + soID)
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
-                    })
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/" + soID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                    });
             });
         });
 
         describe('update ServiceObject', function () {
-            it("Should update a service object successfully", function (done) {
-                var updatedSO = {
-                    soID: "jsdj93d3ijd3jd3"
-                };
+            var soID;
 
-                chai.request(server)
-                    .put("/" + updatedSO.soID)
-                    .auth(user, password)
-                    .send(updatedSO)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        done();
-                    })
+            var updatedSo = clone(soWithoutGateway);
+            updatedSo.name = "Updated Service Object Name";
+            updatedSo.description = "Updated Service Object Description";
+
+            // TODO Phil 21/11/16: update service object and create gateway
+            before(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(soWithoutGateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("id");
+                        soID = res.body.id;
+                    });
+            });
+            after(function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + soID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        // console.log(">>> DEL RES: ", res.status);
+                        expect(res).to.have.status(200);
+
+                    });
             });
 
-            it("Should reject updating service object due to wrong id", function (done) {
-                chai.request(server)
-                    .put("/" + "This_cannot_be_an_id")
-                    .end(function (err, res) {
-                        res.should.have.status(507);
-                        done();
+            it("Should update a service object successfully", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + soID)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(updatedSo)
+                    .then(function (res) {
+                        // console.log("res: ", res);
+                        expect(res).to.have.status(200);
+                    });
+            });
+
+            it("Should reject updating service object due to wrong id", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + "This_cannot_be_an_id")
+                    .set("Authorization", userID)
+                    .send(updatedSo)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+
+                    });
+            });
+
+            it("Should reject updating service object due missing authentication", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + soID)
+                    .send(updatedSo)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+
                     });
             });
         });
 
         describe('remove ServiceObject', function () {
-            it("Should remove a service object successfully", function (done) {
-                var soID = "jd39j33d3jd939d3j";
-                chai.request(server)
-                    .del("/" + soID)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        done();
+            var soID;
+
+            beforeEach(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(soWithoutGateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("soID");
+                        soID = res.body.soID;
+                    });
+            });
+            afterEach(function () {
+                if (soID) {
+                    return chai.request(server)
+                        .del(url_prefix + "/" + soID)
+                        .set("Authorization", userID)
+                        .then(function (res) {
+                            expect(res).to.have.status(200);
+                        });
+                }
+            });
+
+            it("Should remove a service object successfully", function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + soID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        soID = null;
                     });
             });
 
-            it("Should reject deleting service object due to wrong id", function (done) {
-                chai.request(server)
-                    .del("/" + "This_cannot_be_a_id")
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(507);
-                        done();
+            it("Should reject deleting service object due to wrong id", function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + "This_cannot_be_a_id")
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
+
+            it("Should reject removing service object due missing authentication", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + soID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
                     });
             });
         });
 
-        describe('get all service objects for a user', function () {
-            it("Should get all service objects for a user", function (done) {
-                chai.request(server)
-                    .get("/SOs")
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("SOs");
-                        done();
+        describe('Get all service objects for a user', function () {
+            var soID1, soID2;
+
+            before(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .post(url_prefix + "/")
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(soWithoutGateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("soID");
+                                soID1 = res.body.soID;
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .post(url_prefix + "/")
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(soWithoutGateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("soID");
+                                soID2 = res.body.soID;
+                            });
+                    });
+            });
+            after(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/" + soID1)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/" + soID2)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
                     });
             });
 
-            // TODO Phil 05/10/16: look at it later
-            it("Should reject service object due to failed authentication", function (done) {
-                chai.request(server)
-                    .get("SOs")
-                    .auth(user, "wrong password")
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            it("Should get all service objects for a user successfully", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/sos")
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.deep.equal([soID1, soID2]);
                     });
-            })
+            });
+
+            it("Should reject service object due to missing authentication", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/sos")
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                    });
+            });
+        });
+
+        describe("Get all Service Object for Gateway", function () {
+            describe("Get Service Object for Gateway", function () {
+                var gID;
+                var soID1, soID2;
+                var soWithGateway = clone(so);
+
+                before(function () {
+                    return Promise.resolve()
+                        .then(function () {
+                            return chai.request(server)
+                                .post(url_prefix + "/gateway")
+                                .set("Authorization", userID)
+                                .set("Content-Type", "application/json")
+                                .send(gateway)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                    expect(res.body).to.have.property("gatewayID");
+                                    gID = res.body.gatewayID;
+                                    soWithGateway.gateway = {
+                                        gatewayID: gID
+                                    };
+                                });
+                        }).then(function () {
+                            return chai.request(server)
+                                .post(url_prefix + "/")
+                                .set("Authorization", userID)
+                                .set("Content-Type", "application/json")
+                                .send(soWithGateway)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                    expect(res.body).to.have.property("soID");
+                                    soID1 = res.body.soID;
+                                });
+                        }).then(function () {
+                            return chai.request(server)
+                                .post(url_prefix + "/")
+                                .set("Authorization", userID)
+                                .set("Content-Type", "application/json")
+                                .send(soWithGateway)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                    expect(res.body).to.have.property("soID");
+                                    soID2 = res.body.soID;
+                                });
+                        });
+                });
+                after(function () {
+                    return Promise.resolve()
+                        .then(function () {
+                            return chai.request(server)
+                                .del(url_prefix + "/" + soID1)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                });
+                        }).then(function () {
+                            return chai.request(server)
+                                .del(url_prefix + "/" + soID2)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                });
+                        }).then(function () {
+                            return chai.request(server)
+                                .del(url_prefix + "/gateway/" + gID)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                });
+                        });
+                });
+
+                it("Should get all Service Objects for a gateway successfully", function () {
+                    return chai.request(server)
+                        .get(url_prefix + "/" + gID + "/sos")
+                        .set("Authorization", userID)
+                        .then(function (res) {
+                            expect(res).to.have.status(200);
+                            expect(res.body).to.deep.equal([soID1, soID2]);
+
+                        });
+                });
+
+                it("Should reject getting all Service Objects for gateway due to missing gateway", function () {
+                    return chai.request(server)
+                        .get(url_prefix + "/" + "missing_gateway" + "/sos")
+                        .set("Authorization", userID)
+                        .catch(function (res) {
+                            expect(res).to.have.status(400);
+
+                        });
+                });
+
+                it("Should reject getting all Service Objects for gateway due to missing authentication", function () {
+                    return chai.request(server)
+                        .get(url_prefix + "/" + gID + "/sos")
+                        .catch(function (res) {
+                            expect(res).to.have.status(403);
+
+                        });
+                });
+            });
+        });
+
+        describe("Get no Service Objects for Gateway as no ones are added", function () {
+            var gID;
+            var soWithGateway = clone(so);
+
+            before(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(gateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("gatewayID");
+                        gID = res.body.gatewayID;
+                        soWithGateway.gateway = {
+                            gatewayID: gID
+                        };
+
+                    });
+            });
+            after(function () {
+                return chai.request(server)
+                    .del(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+
+                    });
+            });
+            it("Should reject getting all Service Objects for a gateway successfully as there are none", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/" + gID + "/sos")
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
         });
     });
 
     describe("Gateways", function () {
-        // TODO Phil 05/10/16: Actually give gateways a correct syntax.
+        var badSyntaxGateway = {
+            name: "Test Gateway1" // missing URL property
+        };
+
         describe('add Gateway', function () {
-            it("Should accept a gateway successfully", function (done) {
-                var correctGW = {};
-                chai.request(server)
-                    .post("/gateway")
-                    .auth(user, password)
-                    .send(correctGW)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("gatewayID");
-                        done();
+            var gID;
+
+            afterEach(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        if (gID) {
+                            return chai.request(server)
+                                .del(url_prefix + "/gateway/" + gID)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(200);
+                                });
+                        }
                     });
             });
 
-            it("Should reject a service object due to bad syntax", function (done) {
-                var incorrectGW = {};
-                chai.request(server)
-                    .post("/gateway")
-                    .auth(user, password)
-                    .send(incorrectGW)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
-                    })
+            it("Should accept a gateway successfully", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(gateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("gatewayID");
+                        gID = res.body.gatewayID;
+                    });
             });
 
-            it("Should reject request due to failed authentication", function (done) {
-                var correctGW = {};
-                chai.request(server)
-                    .post("/gateway")
-                    .auth(user, "wrong password")
-                    .send(correctGW)
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            it("Should reject a service object due to bad syntax", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(badSyntaxGateway)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                        gID = null;
+                    });
+            });
+
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Content-Type", "application/json")
+                    .send(gateway)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                        gID = null;
                     });
             });
         });
 
         describe('update Gateway', function () {
-            it("Should accept request and update sucessfully", function (done) {
-                var correctGW = {
-                    gatewayID: "2mv845nmvsk39"
-                };
-                chai.request(server)
-                    .put("/gateway/" + correctGW.gatewayID)
-                    .auth(user, password)
-                    .send(correctGW)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        done();
+            var gID;
+            var gatewayUpdated = {
+                "name": "Smart Home 1",
+                "URL": "https://gateway_test.com/dir/to/my/gateway/",
+                "port": 443,
+                "protocol": "HTTPS"
+            };
+
+            beforeEach(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(gateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("gatewayID");
+                        gID = res.body.gatewayID;
                     });
             });
 
-            it("Should reject request due to bad syntax", function (done) {
-                var incorrectGW = {
-                    gatewayID: "2mv845nmvsk39",
-                    thisfielddoesnotexist: "value"
-                };
-                chai.request(server)
-                    .put("/gateway/" + incorrectGW.gatewayID)
-                    .auth(user, password)
-                    .send(incorrectGW)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
+            afterEach(function () {
+                return chai.request(server)
+                    .del(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
                     });
             });
 
-            it("Should reject request due to missing service object", function (done) {
-                var correctGW = {
-                    gatewayID: "2mv845nmvsk39"
-                };
-                chai.request(server)
-                    .put("/gateway/" + correctGW.gatewayID)
-                    .auth(user, password)
-                    .send(correctGW)
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            it("Should accept request and update successfully", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(gatewayUpdated)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                    });
+            });
+
+            it("Should reject request due to bad syntax", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(badSyntaxGateway)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
+
+            it("Should reject request due to missing authorization", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/gateway/" + gID)
+                    .set("Content-Type", "application/json")
+                    .send(gatewayUpdated)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
                     });
             });
         });
 
         describe('get Gateway', function () {
-            it("Should accept request and return gateway description", function (done) {
-                var requestedGW = "2mv845nmvsk39";
-                chai.request(server)
-                    .get("/gateway/" + requestedGW)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("id");
-                        res.body.should.have.property("URL");
-                        res.body.should.have.property("port");
-                        done();
+            var gID;
+
+            beforeEach(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(gateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("gatewayID");
+                        gID = res.body.gatewayID;
                     });
             });
 
-            it("Should reject request due to missing gateway", function (done) {
-                var requestedGW = "THIS_CANNOT_BE_A_GATEWAY_ID";
-                chai.request(server)
-                    .get("/gateway/" + requestedGW)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
+            afterEach(function () {
+                return chai.request(server)
+                    .del(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
                     });
             });
 
-            it("Should reject request due to failed authentication", function (done) {
-                var requestedGW = "2mv845nmvsk39";
-                chai.request(server)
-                    .get("/gateway/" + requestedGW)
-                    .auth(user, "wrong_password")
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            it("Should accept request and return gateway description", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                    });
+            });
+
+            it("Should reject request due to missing gateway", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/gateway/" + "THIS_CANNOT_BE_A_GATEWAY_ID")
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
+
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/gateway/" + gID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
                     });
             });
         });
 
         describe('remove Gateway', function () {
-            it("Should accept request and remove gateway", function (done) {
-                var requestedGW = "2mv845nmvsk39";
-                chai.request(server)
-                    .del("/gateway/" + requestedGW)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        done();
-                    })
-            });
+            var gID;
 
-            it("Should reject request due to missing gateway", function (done) {
-                var requestedGW = "this_is_not_a_gateway_id";
-                chai.request(server)
-                    .del("/gateway/" + requestedGW)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
-                    })
-            });
-
-            it("Should reject request due to failed authentication", function (done) {
-                var requestedGW = "2mv845nmvsk39";
-                chai.request(server)
-                    .del("/gateway/" + requestedGW)
-                    .auth(user, "wrong password")
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
-                    })
-            });
-        });
-
-        describe('get all gateways for user', function () {
-
-        });
-
-        describe('get all service objects for gateway', function () {
-            it("Should get all service objects for gateway", function (done) {
-                var requestedGW = "2mv845nmvsk39";
-                chai.request(server)
-                    .get(requestedGW + "/SOs")
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("SOs");
-                        done();
+            beforeEach(function () {
+                return chai.request(server)
+                    .post(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(gateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("gatewayID");
+                        gID = res.body.gatewayID;
                     });
             });
 
-            it("Should reject request due to failed authentication", function (done) {
-                var requestedGW = "2mv845nmvsk39";
-                chai.request(server)
-                    .get(requestedGW + "/SOs")
-                    .auth(user, 'wrong password')
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            afterEach(function () {
+                if (gID) {
+                    return chai.request(server)
+                        .del(url_prefix + "/gateway/" + gID)
+                        .set("Authorization", userID)
+                        .then(function (res) {
+                            expect(res).to.have.status(200);
+                        });
+                }
+            });
+
+            it("Should accept request and remove gateway", function () {
+                return chai.request(server)
+                    .del(url_prefix + "/gateway/" + gID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        gID = null;
+                    });
+            });
+
+            it("Should reject request due to missing gateway", function () {
+                return chai.request(server)
+                    .del(url_prefix + "/gateway/" + "THIS_CANNOT_BE_A_GATEWAY_ID")
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
+
+            // TODO Phil 22/11/16: This test case doesn't work yet, as there is still a problem with chaining promises.
+            // it("Should reject request due to failed authentication", function () {
+            //     chai.request(server)
+            //         .del(url_prefix + "/gateway/" + gID)
+            //         .catch(function (res) {
+            //             expect(res).to.have.status(403);
+            //         });
+            // });
+        });
+
+        describe('get all Gateways for User', function () {
+            var gID1, gID2;
+
+            before(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .post(url_prefix + "/gateway")
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(gateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("gatewayID");
+                                gID1 = res.body.gatewayID;
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .post(url_prefix + "/gateway")
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(gateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("gatewayID");
+                                gID2 = res.body.gatewayID;
+                            });
+                    });
+            });
+
+            after(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/gateway/" + gID1)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/gateway/" + gID2)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
+                    });
+
+            });
+
+            it("Should successfully get all Gateways for a User", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.deep.equal([gID1, gID2]);
+                    });
+            });
+
+            it("Should reject getting all Gateways for a User due to missing authentication", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/gateway")
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                    });
+            });
+        });
+
+        describe("Should get no Gateways for User as there are none", function () {
+            it("Should reject getting all Gateways for a User due to missing Gateways", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/gateway")
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
                     });
             });
         });
     });
 
     describe("Sensor Data", function () {
+        var sensordata = {
+            channels: [
+                {
+                    name: "temperature1",
+                    value: "10.2"
+                },
+                {
+                    name: "temperature2",
+                    value: "20.8"
+                },
+                {
+                    name: "humidity",
+                    value: "63"
+                },
+                {
+                    name: "brightness",
+                    value: "970"
+                }
+            ]
+        };
+
+        var badSyntaxSensorData = {
+            channels: [
+                {
+                    name: "temperature1"
+                },
+                {
+                    name: "temperature2",
+                    value: "20.8"
+                },
+                {
+                    name: "humidity",
+                    value: "63"
+                },
+                {
+                    value: "970"
+                }
+            ]
+        };
 
         describe('push Sensor Data', function () {
-            it("Should accept request and store sensor data", function (done) {
-                var soID = "";
-                var streamID = "";
-                var data = {};
-                chai.request(server)
-                    .put("/" + soID + "/streams/" + streamID)
-                    .auth(user, password)
-                    .send(data)
-                    .end(function (err, res) {
-                        res.should.have.status(201);
-                        done();
+            var soID;
+            var streamID;
+            var added = false;
+            before(function () {
+                return chai.request(server)
+                    .post(url_prefix)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(soWithoutGateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("soID");
+                        soID = res.body.soID;
+                        streamID = so.streams[0].name;
                     });
             });
 
-            it("Should reject request due to bad syntax", function (done) {
-                var soID = "";
-                var streamID = "";
-                var incorrectData = {};
-                chai.request(server)
-                    .put("/" + soID + "/streams/" + streamID)
-                    .auth(user, password)
-                    .send(incorrectData)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
+            after(function () {
+                return Promise.resolve().then(function () {
+                    return chai.request(server)
+                        .del(url_prefix + "/" + soID)
+                        .set("Authorization", userID)
+                        .set("Content-Type", "application/json")
+                        .then(function (res) {
+                            expect(res).to.have.status(200);
+                        });
+                }).then(function () {
+                    if (added) {
+                        return chai.request(server)
+                            .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(204);
+                            });
+                    }
+                });
+            });
+
+            it("Should accept request and store sensor data", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(sensordata)
+                    .then(function (res) {
+                        expect(res).to.have.status(201);
+                        added = true;
                     });
             });
 
-            it("Should reject request due to failed authentication", function (done) {
-                var soID = "";
-                var streamID = "";
-                var data = {};
-                chai.request(server)
-                    .put("/" + soID + "/streams/" + streamID)
-                    .auth(user, "wrong password")
-                    .send(data)
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            it("Should reject request due to bad syntax", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(badSyntaxSensorData)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
+
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(server)
+                    .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Content-Type", "application/json")
+                    .send(sensordata)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
                     });
             });
         });
 
         describe("remove Sensor Data", function () {
-            it("Should accept request and remove sensor data", function (done) {
-                var soID = "";
-                var streamID = "";
-                chai.request(server)
-                    .del("/" + soID + "/streams/" + streamID)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(204);
-                        done();
+            var soID;
+            var streamID;
+            var removed = false;
+            beforeEach(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .post(url_prefix)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(soWithoutGateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("soID");
+                                soID = res.body.soID;
+                                streamID = so.streams[0].name;
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(sensordata)
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(sensordata)
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
+                            });
                     });
             });
 
-            it("Should reject request due to missing sensor data", function (done) {
-                var soID = "";
-                var streamID = "";
-                chai.request(server)
-                    .del("/" + soID + "/streams/" + streamID)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
+            afterEach(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/" + soID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
+                    }).then(function () {
+                        if (!removed) {
+                            return chai.request(server)
+                                .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                                .set("Authorization", userID)
+                                .then(function (res) {
+                                    expect(res).to.have.status(204);
+                                });
+                        }
                     });
             });
 
-            it("Should reject request due to failed authentication", function (done) {
-                var soID = "";
-                var streamID = "";
+            it("Should accept request and remove sensor data", function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(204);
+                        removed = true;
+                    });
+            });
+
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
+                        removed = false;
+                    });
+            });
+        });
+
+        describe("Doesn't remove Sensor Data for Stream as it is not added", function () {
+            var soID;
+            var streamID;
+            before(function () {
+                return chai.request(server)
+                    .post(url_prefix)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .send(soWithoutGateway)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("soID");
+                        soID = res.body.soID;
+                        streamID = so.streams[0].name;
+                    });
+            });
+
+            after(function () {
+                return chai.request(server)
+                    .del(url_prefix + "/" + soID)
+                    .set("Authorization", userID)
+                    .set("Content-Type", "application/json")
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                    });
+            });
+
+            it("Should reject request due to missing sensor data", function () {
                 chai.request(server)
-                    .del("/" + soID + "/streams/" + streamID)
-                    .auth(user, "wrong password")
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+                    .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
                     });
             });
         });
 
         describe("get Sensor Data", function () {
-            it("Should accept request and return sensor data", function (done) {
-                var soID = "";
-                var streamID = "";
-                chai.request(server)
-                    .get("/" + soID + "/streams/" + streamID)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("data");
-                        done();
+            var soID;
+            var streamID;
+
+            before(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .post(url_prefix)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(soWithoutGateway)
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                                expect(res.body).to.have.property("soID");
+                                soID = res.body.soID;
+                                streamID = so.streams[0].name;
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(sensordata)
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .put(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .send(sensordata)
+                            .then(function (res) {
+                                expect(res).to.have.status(201);
+                            });
                     });
             });
 
-            it("Should accept request and return sensor data with options", function (done) {
-                var soID = "";
-                var streamID = "";
-                var options = "";
-                chai.request(server)
-                    .get("/" + soID + "/streams/" + streamID + "/" + options)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(200);
-                        res.body.should.have.property("data");
-                        // TODO Phil 05/10/16: check if the received data is valid to the options
-                        done();
+            after(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/" + soID)
+                            .set("Authorization", userID)
+                            .set("Content-Type", "application/json")
+                            .then(function (res) {
+                                expect(res).to.have.status(200);
+                            });
+                    }).then(function () {
+                        return chai.request(server)
+                            .del(url_prefix + "/" + soID + "/streams/" + streamID)
+                            .set("Authorization", userID)
+                            .then(function (res) {
+                                expect(res).to.have.status(204);
+                            });
                     });
             });
 
-            it("Should reject request due to missing sensor data", function (done) {
-                var soID = "";
-                var streamID = "";
-                chai.request(server)
-                    .get("/" + soID + "/streams/" + streamID)
-                    .auth(user, password)
-                    .end(function (err, res) {
-                        res.should.have.status(400);
-                        done();
+            it("Should accept request and return sensor data", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .then(function (res) {
+                        expect(res).to.have.status(200);
+                        expect(res.body).to.have.property("data");
                     });
             });
 
-            it("Should reject request due to failed authentication", function (done) {
-                var soID = "";
-                var streamID = "";
-                chai.request(server)
-                    .get("/" + soID + "/streams/" + streamID)
-                    .auth(user, "wrong password")
-                    .end(function (err, res) {
-                        res.should.have.status(403);
-                        done();
+            // TODO Phil 23/11/16: Options are not implemented yet. So long this is covered by the test case below the out-commented part
+            // it("Should accept request and return sensor data with options", function () {
+            //     return chai.request(server)
+            //         .get(url_prefix + "/" + soID + "/streams/" + streamID + "/" + options)
+            //         .set("Authorization", userID)
+            //         .then(function (res) {
+            //             expect(res).to.have.status(200);
+            //             expect(res.body).to.have.property("data");
+            //         });
+            // });
+
+            it("Should reject request to return sensor data with options as it's not yet implemented", function () {
+                var options = {timestamp: 2143923232};
+                return chai.request(server)
+                    .get(url_prefix + "/" + soID + "/streams/" + streamID + "/" + options)
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(501);
+                    });
+            });
+
+            it("Should reject request due to missing sensor data", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .set("Authorization", userID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(400);
+                    });
+            });
+
+            it("Should reject request due to missing authentication", function () {
+                return chai.request(server)
+                    .get(url_prefix + "/" + soID + "/streams/" + streamID)
+                    .catch(function (res) {
+                        expect(res).to.have.status(403);
                     });
             });
         });
     });
-});
+})
+;
 
