@@ -5,6 +5,8 @@ var clone = require("clone");
 var mongoose = require("mongoose");
 var rndString = require("randomstring");
 
+var Promise = require("bluebird");
+
 var w = require('winston');
 w.level = process.env.LOG_LEVEL;
 
@@ -13,6 +15,9 @@ mongoose.Promise = global.Promise;
 var Gateway = require("../mongodb/models").Gateway;
 var ServiceObject = require("../mongodb/models").ServiceObject;
 var SensorData = require("../mongodb/models").SensorData;
+
+var NotFoundError = require("../../../storage").NotFoundError;
+var NoDataFoundError = require("../../../storage").NoDataFoundError;
 
 module.exports = {
     init: init,
@@ -54,6 +59,9 @@ function valid(o) {
  * @param settings the settings for the mongodb database.
  */
 function init(settings) {
+
+    // TODO: Mongoose 4.11 requires different DB setup. FIX
+    // Currently useMongoClient does not work as it is buggy inside mongoose
     return new Promise(function(resolve, reject) {
         try {
             mongoose.connect("mongodb://"+settings.user+":"+settings.password+"@"+settings.host+":"+settings.port+"/"+settings.dbname).then(function() {
@@ -228,7 +236,7 @@ function updateServiceObject(soID, newSo) {
 
     return ServiceObject.findById(soID).exec().then(function (oldSo) {
         if(oldSo === null) {
-            return Promse.reject
+            return Promise.reject
         }
         
         if(!valid(transSO.api_token))
@@ -289,15 +297,14 @@ function updateServiceObject(soID, newSo) {
         } else {
             delete transSO.gateway;
             return ServiceObject.findByIdAndUpdate(soID, transSO, updateOptions).lean().exec().then(function (updatedSO) {
-                // console.log("updatedSO: ", updatedSO);
                 return Promise.resolve({id: updatedSO._id, gateway: updatedSO.gateway});
             }, function(e) {
-                console.log("Error: ", e);
+                w.error(e);
                 return Promise.reject(e);
             });
         }
     }, function(err) {
-        console.log("ERROR: ", err);
+        w.error(err);
         if (err instanceof NotFoundError) {
             res.status(400).json({msg: "Bad Request. Could not find Service Object."});
         }
@@ -332,14 +339,12 @@ function getServiceObject(soID) {
  * @returns {Promise} whether removing was successful or not.
  */
 function removeServiceObject(soID) {
-    return new Promise(function (resolve, reject) {
-        ServiceObject.findByIdAndRemove(soID, function (err, foundSO) {
-            if (err || !foundSO) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
+    return ServiceObject.findByIdAndRemove(soID).lean().exec().then(function (foundSO) {
+        if (!foundSO) {
+            return Promise.reject(new NotFoundError("Could not find Service Object for given parameters"));
+        } else {
+            return Promise.resolve();
+        }
     });
 }
 
@@ -372,7 +377,7 @@ function getAllSoForGateway(gatewayID) {
  */
 function getAllSoForUser(userID) {
     return new Promise(function (resolve, reject) {
-        ServiceObject.find({ownerID: userID}).lean().exec(function (err, sos) {
+        ServiceObject.find({owner: userID}).lean().exec(function (err, sos) {
             if (err || sos.length === 0) {
                 reject(err);
             } else {
@@ -485,10 +490,15 @@ function getAllGatewaysForUser(userID) {
  * @returns {Promise} whether the given parameters exist in the database or not.
  */
 function validateSoIdAndStreamId(soID, streamID) {
-    return SensorData.validateSoID(soID)
-        .then(function () {
-            return SensorData.validateStreamID(soID, streamID);
+    return new Promise(function(resolve, reject) {
+        SensorData.validateSoID(soID).then(function () {
+            SensorData.validateStreamID(soID, streamID).then(function(streamID) {
+                resolve(streamID);
+            }, function(e) {
+                reject(e);
+            });
         });
+    });
 }
 
 /**
@@ -499,11 +509,21 @@ function validateSoIdAndStreamId(soID, streamID) {
  * @param data the given JSON
  * @returns {Promise} whether the given JSON has correct SensorData syntax or not.
  */
-function validateSensorDataSyntax(soID, streamID, data) {
+function validateSensorDataSyntax(userID, soID, streamID, data) {
+    console.log("SERIOS.storage.mongodb.validateSensorDataSyntax");
     data.soID = soID;
-    data.streamID = streamID;
-    return validateSoIdAndStreamId(soID, streamID).then(function () {
-        return new SensorData(data).validate();
+    data.stream = streamID;
+    return new Promise(function(resolve, reject) {
+        validateSoIdAndStreamId(soID, streamID).then(function () {
+            console.log("data: ", data);
+            var p = new SensorData(data).validate();
+            p.then(function(d) {
+                resolve(d);
+            }, function(e) {
+                console.log(e);
+                reject(e);
+            })
+        });
     });
 }
 
@@ -517,12 +537,13 @@ function validateSensorDataSyntax(soID, streamID, data) {
  * @returns {Promise} whether adding was successful or not.
  */
 function addSensorData(ownerID, soID, streamID, olddata) {
+    w.debug("SERIOS.mongodb.addSensorData("+ownerID+", "+soID+", "+streamID+")");
     var data = transformSOU2Serios(olddata);
 
-    data.ownerID = ownerID;
+    data.owner = ownerID;
     data.soID = soID;
-    data.streamID = streamID;
-
+    data.stream = streamID;
+    
     return validateSoIdAndStreamId(soID, streamID).then(function () {
         return new SensorData(data).save();
     }).catch(function(err) {
@@ -538,15 +559,13 @@ function addSensorData(ownerID, soID, streamID, olddata) {
  * @returns {Promise} whether removing was successful or not.
  */
 function removeSensorData(soID, streamID) {
-    return SensorData.find({soID: soID, streamID: streamID}).exec().then(function (foundSDs) {
-        if (!foundSDs || foundSDs.length === 0) {
-            return Promise.reject(new Error("Could not find sensor data for given oarameters"));
+    w.debug("SERIOS.storage.mongodb.removeSensorData");
+
+    return SensorData.find({soID: soID, stream: streamID}).lean().exec().then(function (foundSDs) {
+        if (!foundSDs.length) {
+            return Promise.reject(new NoDataFoundError("Could not find sensor data for given parameters"));
         } else {
-            var proms = [];
-            foundSDs.forEach(function (data) {
-                proms.push(data.remove());
-            });
-            return Promise.all(proms);
+            return SensorData.remove({soID: soID, stream: streamID}).exec();
         }
     });
 }
@@ -559,15 +578,17 @@ function removeSensorData(soID, streamID) {
  * @returns {Promise} Promise with an array of Sensor Data.
  */
 function getSensorDataForStream(soID, streamID, options) {
-    // TODO Phil 18/11/16: implement options support
+    w.debug("SERIOS.storage.mondodb.getSensorDataForStream");
+
     return validateSoIdAndStreamId(soID, streamID).then(function () {
         if(options === "lastUpdate") {
-            // TODO: create an Index at installation time which supports this operations, otherwise this is horribly slow
-            return SensorData.aggregate([ {$match : { 'soID' : soID, 'streamID' : streamID } }, {$sort : { 'lastUpdate' : -1 } }, { $limit : 1 } ] ).exec();
+            // TODO: create an Index at installation time which supports this operations, otherwise this is extremely slow
+            return SensorData.aggregate([ {$match : { 'soID' : soID, 'stream' : streamID } }, {$sort : { 'lastUpdate' : -1 } }, { $limit : 1 } ] ).exec();
         } else if(options === "all") {
-            return SensorData.find({soID: soID, streamID: streamID}).lean().exec();
-        } else
-            return Promise.reject();
+            return SensorData.find({soID: soID, stream: streamID}).lean().exec();
+        } else {
+            return SensorData.find({soID: soID, stream: streamID}).lean().exec();
+        }
     }).then(function (items) {
         var results = [];
         for(var i in items)
