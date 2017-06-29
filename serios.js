@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 
 var express = require('express');
-var logger = require('morgan');
+
+var logger = function() {
+    return function(req, res, next) {
+        next();
+    }
+}
+
+if(process.env.NODE_ENV !== "test")
+    logger = require('morgan');
 
 var serios = require("./index.js");
 var server = null;
