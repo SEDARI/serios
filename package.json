@@ -12,7 +12,7 @@
     "scripts": {
         "postinstall": "node scripts/dbSetup.js",
         "start": "node serios.js",
-        "test" : "grunt"
+        "test" : "mocha test/api-test.js"
     },
     "contributors": [
         {
