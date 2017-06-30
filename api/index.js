@@ -40,18 +40,19 @@ function init(settings, checker, tag) {
     app.get("/gateway/:gatewayID", gateway.get);
     app.delete("/gateway/:gatewayID", gateway.remove);
     app.get("/gateway", gateway.getAllGatewaysForUser);
-    app.get("/gateway/:gateway/sos", serviceObject.getAllSoForGateway);
+
+    app.get("/all", checker.checkAuth, serviceObject.getAllSoForUser);
+    app.get("/all/:gatewayID", serviceObject.getAllSoForGateway);
 
     // API for Service Objects - tested
     app.post("/", checker.checkAuth, serviceObject.add);
     app.put("/:soID", checker.checkAuth, serviceObject.update);
     app.get("/:soID", checker.checkAuth, serviceObject.get);
     app.delete("/:soID", checker.checkAuth, serviceObject.remove);
-    app.get("/", checker.checkAuth, serviceObject.getAllSoForUser);
 
     // API for Sensor Data
     app.put("/:soID/streams/:streamID", checker.checkAuthOrToken, sensorData.add);
-    app.get("/:soID/streams/:streamID/:options", checker.checkAuthOrToken, sensorData.getDataForStream);
+    app.get("/:soID/streams/:streamID/:options?", checker.checkAuthOrToken, sensorData.getDataForStream);
     // TODO Phil 18/11/16: maybe add getting sensor data for gateway
     app.get("/data/:options", sensorData.getDataForUser);
     app.delete("/:soID/streams/:streamID", sensorData.remove);

@@ -3,6 +3,11 @@
  */
 var mongoose = require("mongoose");
 
+var Promise = require("bluebird");
+
+var w = require('winston');
+w.level = process.env.LOG_LEVEL;
+
 /**
  * Used to generate uuIDs.
  */
@@ -257,7 +262,7 @@ function SensorDataSchema() {
             // required: [true, 'Sensor data ownerID required']
             required: false
         },
-        id: {
+        soID: {
             type: String,
             required: true
         },
@@ -285,6 +290,7 @@ function SensorDataSchema() {
      * @returns {Promise} whether the given service object exists or not.
      */
     schema.statics.validateSoID = function (soID) {
+        w.debug("SERIOS.storage.mongodb.schema.statics.validateSoID");
         return ServiceObject.findById(soID).lean().exec().then(function (so) {
             return new Promise(function (resolve, reject) {
                 if (!so) {
@@ -304,15 +310,16 @@ function SensorDataSchema() {
      * @returns {Promise} whether the given stream exists for a service object or not.
      */
     schema.statics.validateStreamID = function(soID, streamID) {
-        return ServiceObject.findById(soID).lean().exec().then(function (so) {
-            return new Promise(function (resolve, reject) {
+        w.debug("schema.statics.validateStreamID");
+        return new Promise(function (resolve, reject) {
+            ServiceObject.findById(soID).lean().exec().then(function (so) {
                 if (!so) {
-                    return reject(new Error("Could not find Service Object"));
+                    reject(new Error("Could not find Service Object"));
                 } else {
                     var array = so.streams.map(function (stream) {
                         return stream.name;
                     });
-
+                    
                     /*
                      * Better solution would be to call
                      * `if (array.includes(streamID)) {...}`,
@@ -320,11 +327,13 @@ function SensorDataSchema() {
                      * this is the alternative.
                      */
                     if (array.indexOf(streamID) >= 0) {
-                        return resolve();
+                        resolve(streamID);
                     } else {
-                        return reject(new Error("Could not find Stream in Service Object"));
+                        reject(new Error("Could not find Stream in Service Object"));
                     }
                 }
+            }, function(e) {
+                reject(e);
             });
         });
     };

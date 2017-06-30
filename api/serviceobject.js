@@ -6,6 +6,11 @@
 var w = require('winston');
 w.level = process.env.LOG_LEVEL;
 
+var NotFoundError = require("../storage").NotFoundError;
+var NoDataFoundError = require("../storage").NoDataFoundError;
+
+var ValidationError = require("mongoose").Error.ValidationError;
+
 var soDefaultPolicy = {
     flows: [
         // all properties can only be read by the owner of the entity
@@ -89,6 +94,7 @@ module.exports = function SO(security, tag) {
                 updateSO(soID, so).then(function(r) {
                     res.status(200).json({id: r.id, gatewayID: r.gateway, msg: "OK. Service Object was modified."});
                 }, function(e) {
+                    w.debug("SERIOS.api.update: ", e);
                     res.status(507).json({msg: "Insufficient Storage. Could not save Service Object."});
                 });
             } else {
@@ -172,9 +178,12 @@ module.exports = function SO(security, tag) {
                         w.error("Unable to remove policy for service object with id '"+soID+"'");
                         res.status(200).json({msg: "OK. Service Object was removed."});
                     });
-                }, function(e) {
-                    w.error("The SO could not be removed: ", e);
-                    res.status(500).json({msg: "There was a problem deleting the serviceobject." });
+                }, function(err) {
+                    if (err instanceof NotFoundError) {
+                        res.status(400).json({msg: "Bad Request. Could not find Service Object."});
+                    } else {
+                        res.status(500).json({msg: "Unknown Internal Server error.\n Error: " + err});
+                    }
                 });
             } else {
                 res.status(403).json({msg: "Forbidden. Access was denied!"});
@@ -186,25 +195,23 @@ module.exports = function SO(security, tag) {
         });       
     }
     
-    function getAllSoForGateway(req, res) {
+    function getAllSoForGateway(req, res) {        
         var authorization = req.headers.authorization;
         var gatewayID = req.params.gatewayID;
 
-        checkPermission(authorization).catch(function () {
-            res.status(403).json({msg: "Forbidden. Access was denied!"});
-        }).then(function () {
-            return allSoForGateway(gatewayID);
-        }).catch(function () {
-            res.status(400).json({msg: "Bad Request. Could not find Service Objects for given parameters."});
-        }).then(function (sos) {
+        w.debug("SERIOS.api.getAllSoForGateway: '"+gatewayID+"'");
+
+        allSoForGateway(gatewayID).then(function(sos) {
             res.status(200).json(sos);
+        }, function (err) {
+            res.status(400).json({msg: "Bad Request. Could not find Service Objects for given parameters."});
         });
     }
 
     function getAllSoForUser(req, res) {
         var userID;
-
-        if(req.user && req.user.id)
+        
+        if(valid(req.user) && valid(req.user.id))
             userID = req.user.id;
         else {
             res.status(401).json({msg: "Request unauthorized."});
@@ -215,8 +222,8 @@ module.exports = function SO(security, tag) {
             res.status(200).json(sos);
         }).catch(function () {
             res.status(400).json({msg: "Bad Request. Could not find Service Objects for given parameters."});
-        })
-            }
+        });
+    };
 
     /**
      * Calls the storage to validate the syntax of a given service object.
