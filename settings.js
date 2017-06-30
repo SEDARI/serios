@@ -2,7 +2,7 @@ module.exports = {
     server: {
         tls: false,
         host: "127.0.0.1",
-        port: 3000,
+        port: 3003,
         cluster: 0
     },
     rest: {
