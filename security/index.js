@@ -43,7 +43,16 @@ var checkPermission = function(req, res, next) {
     next();
 }
 
-var checkCreate = function(userInfo, object, type) {
+var checkCreate = function(userInfo, type) {
+    w.debug("serios.security.checkCreate('"+userInfo+"')");
+    
+    return Promise.resolve({ grant: true });
+}
+
+var createEntity = function(userInfo, object, type) {
+    w.debug("serios.security.createEntity('"+userInfo+"', '"+object+"')");
+    
+    return Promise.resolve();
 }
 
 var checkDelete = function(userID, objectID, type) {
@@ -81,6 +90,7 @@ var declassify = function(userInfo, object, type) {
 module.exports = {
     init: init,
     checkCreate: checkCreate,
+    createEntity: createEntity,
     checkDelete: checkDelete,
     postDelete: postDelete,
     checkRead: checkRead,

@@ -52,11 +52,21 @@ module.exports = function SO(security, tag) {
         }
 
         // TODO: add missing syntax validation
-        addSO(so).then(function (r) {
-            res.status(200).json({id: r.id, gateway: r.gateway, api_token: r.api_token});
-            
-        }, function (err) {
-            res.status(507).json({msg: err});
+        security.checkCreate(req.user).then(function(d) {
+            if(d.grant) {
+                addSO(so).then(function (r) {
+                    security.createEntity(req.user, r).then(function() {
+                        res.status(200).json({id: r.id, gateway: r.gateway, api_token: r.api_token});
+                    }, function(err) {
+                        res.status(500).json({msg: err});
+                    });            
+                }, function (err) {
+                    res.status(500).json({msg: err});
+                });
+            } else
+                res.status(403).json({msg: "User is not allowed to create new service objects"});
+        }, function(e) {
+            res.status(500).json({msg: err});
         });
     }
 
@@ -72,7 +82,7 @@ module.exports = function SO(security, tag) {
         }
 
         // TODO: check semantics of update!
-
+        // TODO: Check whether it is possible to check smaller updates (not the whole SO)
         security.checkWrite(req.user, so, "/sensor").then(function(d) {
             if(d.grant) {
                 w.debug("SERIOS.api.update: Update SO '"+soID+"' with ", so);
@@ -95,7 +105,7 @@ module.exports = function SO(security, tag) {
         var soID = req.params.soID;
 
         w.debug("SERIOS.api.get: Retrieve SO with id '"+soID+"'");
-        w.debug("req.user: ", req.user);
+        
         if(!valid(req.user) || !valid(req.user.id)) {
             res.status(401).json({msg: "Request unauthorized."});
             return;
