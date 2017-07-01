@@ -11,32 +11,6 @@ var NoDataFoundError = require("../storage").NoDataFoundError;
 
 var ValidationError = require("mongoose").Error.ValidationError;
 
-var soDefaultPolicy = {
-    flows: [
-        // all properties can only be read by the owner of the entity
-        {
-            to: true,
-            locks: [
-                { lock: "isOwner" }
-            ]
-        },
-        // all properties can only be changed by the owner of the entity
-        {
-            to: false,
-            locks: [
-                { lock: "isOwner" }
-            ]
-        },
-        {
-            to: false,
-            locks: [
-                { lock: "hasType", args: [ "/user" ] },
-                { lock: "attrEq", args: ["role", "admin"] }
-            ]
-        }
-    ]
-};
-
 var storage = require("../storage");
 
 // TODO: Elaborate security (in relation to ulocks) and export functions which perform
@@ -47,7 +21,7 @@ module.exports = function SO(security, tag) {
         var so = req.body;
         var userID;
 
-        w.debug("SERIOS.api.add: Add new SO.");
+        w.debug("SERIOS.api.serviceobject.add");
 
         if(valid(req.user) && valid(req.user.id))
             so.owner = req.user.id;
@@ -57,7 +31,7 @@ module.exports = function SO(security, tag) {
         }
 
         // TODO: add missing syntax validation
-        security.checkCreate(req.user).then(function(d) {
+        security.checkCreateEntity(req.user).then(function(d) {
             if(d.grant) {
                 addSO(so).then(function (r) {
                     security.createEntity(req.user, r).then(function() {

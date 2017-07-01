@@ -537,7 +537,7 @@ function validateSensorDataSyntax(userID, soID, streamID, data) {
  * @returns {Promise} whether adding was successful or not.
  */
 function addSensorData(ownerID, soID, streamID, olddata) {
-    w.debug("SERIOS.mongodb.addSensorData("+ownerID+", "+soID+", "+streamID+")");
+    w.debug("SERIOS.storage.mongodb.addSensorData("+ownerID+", "+soID+", "+streamID+")");
     var data = transformSOU2Serios(olddata);
 
     data.owner = ownerID;

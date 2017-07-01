@@ -8,14 +8,7 @@ function init() {
 }
 
 var checkAuth = function(req, res, next) {
-    // TODO: check whether ensured-login would be a better choice
-    if(req.user) {
-        next();
-    } else {
-        console.log("check bearer");
-        // passport.authenticate('agile-bearer', {session: false})(req, res, next);
-        next();
-    }
+    next();
 };
 
 var checkAuthOrToken = function(req, res, next) {
@@ -36,61 +29,83 @@ var checkAuthOrToken = function(req, res, next) {
 }
 
 var checkPermission = function(req, res, next) {
-    // TODO: check flow contorl permission on SO
-    // TODO: Ensure that requests with access_token can always pass
-    
-    // default behaviour: accept
     next();
 }
 
-var checkCreate = function(userInfo, type) {
-    w.debug("serios.security.checkCreate('"+userInfo+"')");
+var checkCreateEntity = function(userInfo, type) {
+    w.debug("SERIOS.security.checkCreateEntity('"+userInfo+"')");
     
     return Promise.resolve({ grant: true });
 }
 
 var createEntity = function(userInfo, object, type) {
-    w.debug("serios.security.createEntity('"+userInfo+"', '"+object+"')");
+    w.debug("SERIOS.security.createEntity('"+userInfo+"', '"+object+"')");
+    
+    return Promise.resolve();
+}
+
+var checkCreateData = function(userInfo) {
+    // Don't do anything here, the soID is contained
+    // in the data set, thus, it can be linked to the
+    // SO and its policy (this is not the way to go
+    // but a first step to a proper realization)
+    
+    w.debug("SERIOS.security.checkCreateData('"+userInfo+"')");
+    
+    return Promise.resolve({ grant: true });
+}
+
+var createData = function(userInfo, object) {
+    w.debug("SERIOS.security.createData('"+userInfo+"', '"+object+"')");
     
     return Promise.resolve();
 }
 
 var checkDelete = function(userID, objectID, type) {
-    w.debug("serios.security.checkDelete('"+userID+"', '"+objectID+"')");
+    w.debug("SERIOS.security.checkDelete('"+userID+"', '"+objectID+"')");
     
     return Promise.resolve({ grant: true });
 }
 
 var postDelete = function(userID, objectID, type) {
-    w.debug("serios.security.postDelete('"+userID+"', '"+objectID+"')");
+    w.debug("SERIOS.security.postDelete('"+userID+"', '"+objectID+"')");
     
     return Promise.resolve();
 }
 
 var checkRead = function(userInfo, object, type) {
-    w.debug("serios.security.checkRead('"+userInfo.id+"', '"+object.id+"')");
+    w.debug("SERIOS.security.checkRead('"+userInfo.id+"', '"+object.id+"')");
 
-    // use upfront with user and object info
+    // for now, only retrieve the current policy
+    // specified for the service object and check
+    // the policy - maybe don't do anything but simply
+    // declassify
 
     return Promise.resolve({ grant: true });
 }
 
 var checkWrite = function(userInfo, objectID, type) {
-    w.debug("serios.security.checkWrite('"+userInfo.id+"', '"+objectID+"')");
+    w.debug("SERIOS.security.checkWrite('"+userInfo.id+"', '"+objectID+"')");
 
     return Promise.resolve({ grant: true });
 }
 
 var declassify = function(userInfo, object, type) {
-    w.debug("serios.security.declassify('"+userInfo.id+"', '"+object.id+"')");
+    w.debug("SERIOS.security.declassify('"+userInfo.id+"', '"+object.id+"')");
+
+    // for now, only retrieve the current policy
+    // specified for the service object and check
+    // the policy
 
     return Promise.resolve(object);
 }
 
 module.exports = {
     init: init,
-    checkCreate: checkCreate,
+    checkCreateEntity: checkCreateEntity,
     createEntity: createEntity,
+    checkCreateData: checkCreateData,
+    createData: createData,
     checkDelete: checkDelete,
     postDelete: postDelete,
     checkRead: checkRead,

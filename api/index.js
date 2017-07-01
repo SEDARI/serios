@@ -20,7 +20,7 @@ function init(settings, checker, tag) {
     try {
         var serviceObject = require('./serviceobject')(checker, tag);
         var gateway = require("./gateway");
-        var sensorData = require("./sensordata");
+        var sensorData = require("./sensordata")(checker, tag);
     } catch(e) {
         w.error(e);
         process.exit();
