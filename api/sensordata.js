@@ -57,7 +57,7 @@ module.exports = function SU(security, tag) {
                     });
                 }).catch(function (err) {
                     if (err instanceof ValidationError) {
-                        res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data."});
+                        res.status(400).json({msg: "Bad Request. Bad syntax used for Sensor Data. "+err});
                     } else if (err instanceof NotFoundError) {
                         res.status(404).json({msg: "Could not find Service Object or Stream ID for Service Object."});
                     } else {
@@ -132,7 +132,41 @@ module.exports = function SU(security, tag) {
         var options = req.params.options;
 
         getAllSensorDataForStream(req.params.soID, req.params.streamID, options).then(function (data) {
-            res.status(200).json({data: data});
+            if(data === null) {
+                res.status(400).json({msg: "Bad Request. Could not find any data for given Stream."});
+            } else {
+                var newData = [];
+                var toCheck = [];
+                
+                for(var i = 0; i < data.length; i++) {                  
+                    toCheck.push(new Promise(function(resolve, reject) {
+                        var index = i;
+                        security.checkRead(req.user, data[index], "/data").then(function(d) {
+                            if(d.grant) {
+                                security.declassify(req.user, data[index], "/data").then(function(r) {
+                                    newData.push({ channels: r.channels, lastUpdate: r.lastUpdate });
+                                    resolve();
+                                }, function(err) {
+                                    // TODO: give some feedback in response about this event
+                                    w.error("Unable to properly declassify data item retrieved by getAllSensorDataForStream.");
+                                    resolve();
+                                });
+                            } else {
+                                w.error("Unable to access data item retrieved by getAllSensorDataForStream.");
+                                resolve();
+                            }
+                        }, function(err) {
+                            reject(err);
+                        });
+                    }));
+                }
+
+                Promise.all(toCheck).then(function() {
+                    res.status(200).json({data: newData});
+                }, function(err) {
+                    res.status(403).json({msg: "Forbidden. "+err});
+                });
+            }
         }, function(err) {
             if (err instanceof AuthorizationError) {
                 res.status(403).json({msg: "Forbidden. Access was denied!"});

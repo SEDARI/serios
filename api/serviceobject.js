@@ -84,7 +84,7 @@ module.exports = function SO(security, tag) {
     function get(req, res) {
         var soID = req.params.soID;
 
-        w.debug("SERIOS.api.get: Retrieve SO with id '"+soID+"'");
+        w.debug("SERIOS.api.serviceobject.get: SO with id '"+soID+"'");
         
         if(!valid(req.user) || !valid(req.user.id)) {
             res.status(401).json({msg: "Request unauthorized."});
@@ -109,7 +109,7 @@ module.exports = function SO(security, tag) {
                                 res.status(500).json({msg: "The server has a problem with your request. Please contact the system administrator." });
                             });
                         }
-                }, function(e) {
+                    }, function(e) {
                     var m = "Failed to check read access on SO '"+soID+"'";
                     w.error(m);
                     res.status(500).json({msg: "The server has a problem with your request. Please contact the system administrator." });

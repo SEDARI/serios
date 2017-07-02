@@ -147,7 +147,11 @@ function transformSOU2Servioticy(old) {
         newChannel['current-value'] = old.channels[c].value;
         newChannels[old.channels[c].name] = newChannel;
     }
-    return { "channels" : newChannels, "lastUpdate" : old.lastUpdate };
+    // return { "channels" : newChannels, "lastUpdate" : old.lastUpdate };
+    newUpdate = old;
+    newUpdate.channels = newChannels;
+    
+    return newUpdate;
 }
 
 /**
@@ -318,7 +322,7 @@ function updateServiceObject(soID, newSo) {
  * @returns {Promise} whether the Service Object exits or not.
  */
 function getServiceObject(soID) {
-    return ServiceObject.findById(soID).lean().select("id gatewayID name description streams api_token").exec().then(function (mod) {
+    return ServiceObject.findById(soID).lean().select("id gatewayID name description streams api_token owner").exec().then(function (mod) {
         return new Promise(function (resolve, reject) {
             if(mod === null)
                 resolve(null)
@@ -492,7 +496,9 @@ function getAllGatewaysForUser(userID) {
 function validateSoIdAndStreamId(soID, streamID) {
     return new Promise(function(resolve, reject) {
         SensorData.validateSoID(soID).then(function () {
+            w.debug("SERIOS.storage.mongodb.validateSoIdAndStreamId: SO ID is correct");
             SensorData.validateStreamID(soID, streamID).then(function(streamID) {
+                w.debug("SERIOS.storage.mongodb.validateSoIdAndStreamId: stream ID is correct");
                 resolve(streamID);
             }, function(e) {
                 reject(e);
@@ -545,8 +551,10 @@ function addSensorData(ownerID, soID, streamID, olddata) {
     data.stream = streamID;
     
     return validateSoIdAndStreamId(soID, streamID).then(function () {
+        w.debug("SERIOS.storage.mongodb.addSensorData: SO ID and stream ID correct. Store!");
         return new SensorData(data).save();
     }).catch(function(err) {
+        w.debug("SERIOS.storage.mongodb.addSensorData: ", err);
         return Promise.reject(err);
     });
 }
@@ -581,15 +589,20 @@ function getSensorDataForStream(soID, streamID, options) {
     w.debug("SERIOS.storage.mondodb.getSensorDataForStream");
 
     return validateSoIdAndStreamId(soID, streamID).then(function () {
+        w.debug("SERIOS.storage.mondodb.getSensorDataForStream: SO ID and stream ID are correct.");
         if(options === "lastUpdate") {
-            // TODO: create an Index at installation time which supports this operations, otherwise this is extremely slow
+            w.debug("SERIOS.storage.mondodb.getSensorDataForStream: Retrieve last update for '"+soID+"/"+streamID+"'");
+            // TODO: create an Index at installation time which supports these operations, otherwise this is extremely slow
             return SensorData.aggregate([ {$match : { 'soID' : soID, 'stream' : streamID } }, {$sort : { 'lastUpdate' : -1 } }, { $limit : 1 } ] ).exec();
         } else if(options === "all") {
+            w.debug("SERIOS.storage.mondodb.getSensorDataForStream: Retrieve all data for '"+soID+"/"+streamID+"'");
             return SensorData.find({soID: soID, stream: streamID}).lean().exec();
         } else {
+            w.debug("SERIOS.storage.mondodb.getSensorDataForStream: Retrieve all data for '"+soID+"/"+streamID+"'");
             return SensorData.find({soID: soID, stream: streamID}).lean().exec();
         }
     }).then(function (items) {
+        w.debug("SERIOS.storage.mondodb.getSensorDataForStream -1-");
         var results = [];
         for(var i in items)
             results.push(transformSOU2Servioticy(items[i]));
@@ -602,6 +615,7 @@ function getSensorDataForStream(soID, streamID, options) {
             }
         });
     }).catch(function(err) {
+        w.debug("SERIOS.storage.mondodb.getSensorDataForStream -2-");
         return Promise.reject(err);
     });
 }
