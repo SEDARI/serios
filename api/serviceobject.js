@@ -34,7 +34,7 @@ module.exports = function SO(security, tag) {
         security.checkCreateEntity(req.user).then(function(d) {
             if(d.grant) {
                 addSO(so).then(function (r) {
-                    security.createEntity(req.user, r).then(function() {
+                    security.createEntity(req.user, so, "/sensor").then(function() {
                         res.status(200).json({id: r.id, gateway: r.gateway, api_token: r.api_token});
                     }, function(err) {
                         res.status(500).json({msg: err});
